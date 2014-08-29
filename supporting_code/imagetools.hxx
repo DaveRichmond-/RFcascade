@@ -109,7 +109,6 @@ public:
 	template <class T1, class T2>
     static void featuresToImage(const MultiArray<2, T1> & rfFeatures, const MultiArray<2, T2> & rfLabels, MultiArray<3, T1> & image, MultiArray<2, T2> & labels, const Shape2 image_shape)
 	{
-        // this bit probably doesn't work...
         image.reshape(Shape3(image_shape[0], image_shape[1], rfFeatures.size(1)));
         labels.reshape(image_shape);
 
