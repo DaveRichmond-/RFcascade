@@ -107,9 +107,9 @@ public:
 	}
 
 	template <class T1, class T2>
-    static void featuresToImage(MultiArray<2, T1> & rfFeatures, MultiArray<2, T2> & rfLabels, const MultiArray<3, T1> & image, const MultiArray<2, T2> & labels, Shape2 & image_shape)
+    static void featuresToImage(const MultiArray<2, T1> & rfFeatures, const MultiArray<2, T2> & rfLabels, MultiArray<3, T1> & image, MultiArray<2, T2> & labels, Shape2 & image_shape)
 	{
-        image.reshape(Shape3(image_shape(0), image_shape(1), rfFeatures.size(2)));
+        image.reshape(Shape3(image_shape[0], image_shape[1], rfFeatures.size(1)));
         labels.reshape(image_shape);
 
         // consistency check
