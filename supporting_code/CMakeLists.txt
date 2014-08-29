@@ -5,8 +5,8 @@ project (RFcascade_supporting_code)
 FILE(
 GLOB
 RFcascade_supporting_code_Headers
-/Users/richmond/Repos/GIT/RFcascade_supporting_code/null.cxx
-/Users/richmond/Repos/GIT/RFcascade_supporting_code/*.hxx)
+/Users/richmond/Repos/GIT/RFcascade/supporting_code/null.cxx
+/Users/richmond/Repos/GIT/RFcascade/supporting_code/*.hxx)
 add_library(RFcascade_supporting_code SHARED ${RFcascade_supporting_code_Headers})
 
 
