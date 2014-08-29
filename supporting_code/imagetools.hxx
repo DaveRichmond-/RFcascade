@@ -107,7 +107,7 @@ public:
 	}
 
 	template <class T1, class T2>
-    static void featuresToImage(const MultiArray<2, T1> & rfFeatures, const MultiArray<2, T2> & rfLabels, MultiArray<3, T1> & image, MultiArray<2, T2> & labels, Shape2 & image_shape)
+    static void featuresToImage(const MultiArray<2, T1> & rfFeatures, const MultiArray<2, T2> & rfLabels, MultiArray<3, T1> & image, MultiArray<2, T2> & labels, const Shape2 image_shape)
 	{
         image.reshape(Shape3(image_shape[0], image_shape[1], rfFeatures.size(1)));
         labels.reshape(image_shape);
@@ -138,11 +138,42 @@ public:
 
     }
 
-	template <class T2> 
-	static float dice(MultiArray<2, T2> & groundTruthLabels, MultiArray<2, T2> & autoLabels)
-	{
-		// float diceScore = 2*volume_of_intersection/(volume_1+volume_2);
-		// return diceScore;
-	}
+    template <class T2>
+    static ArrayVector<float> dice(const MultiArray<2, T2> & groundTruthLabels, const MultiArray<2, T2> & autoLabels, const int num_classes)
+    {
 
+        // store diceScore for every class in an ArrayVector
+        ArrayVector<UInt32> volume_of_intersection(num_classes);
+        ArrayVector<UInt32> volume_of_GT(num_classes);
+        ArrayVector<UInt32> volume_of_AL(num_classes);
+        ArrayVector<float> diceScore(num_classes);
+        int c_GT, c_AL;
+
+        //
+        for (int j=0; j<groundTruthLabels.size(1); ++j){
+            for (int i=0; i<groundTruthLabels.size(0); ++i){
+
+                c_GT = groundTruthLabels(i,j);
+                c_AL = autoLabels(i,j);
+
+                volume_of_GT[c_GT] += 1;
+                volume_of_AL[c_AL] += 1;
+
+                if (c_GT == c_AL)
+                    volume_of_intersection[c_GT] += 1;
+
+            }
+        }
+
+        for (int c=0; c<num_classes; ++c){
+            if (volume_of_GT[c] + volume_of_AL[c] != 0)
+                diceScore[c] = 2 * static_cast<float>(volume_of_intersection[c]) / (volume_of_GT[c] + volume_of_AL[c]);
+            else
+                diceScore[c] = 0;
+        }
+
+        return diceScore;
+
+    }
+//
 };
