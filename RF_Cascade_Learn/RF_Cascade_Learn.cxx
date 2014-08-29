@@ -54,7 +54,7 @@ int main(int argc, char ** argv)
     // import RF options ----------------------->
 
     // import feature_mix
-    MultiArray<int> feature_mix(3);
+    ArrayVector<int> feature_mix(3);
     feature_mix[0] = atoi(argv[7]);
     feature_mix[1] = atoi(argv[8]);
     feature_mix[2] = atoi(argv[9]);
@@ -75,8 +75,8 @@ int main(int argc, char ** argv)
 
     // set up arrays of data ------------------------->
 
-    MultiArray< MultiArray<2, float> > array_train_features(1);
-    MultiArray< MultiArray<2, UInt8> > array_train_labels(1);
+    ArrayVector< MultiArray<2, float> > array_train_features(1);
+    ArrayVector< MultiArray<2, UInt8> > array_train_labels(1);
 
     for (int i=0; i<num_levels; ++i){
         (array_train_features[i]).reshape(Shape2(num_train_samples,num_all_features));
@@ -87,7 +87,7 @@ int main(int argc, char ** argv)
 
     // set up array of RFs --------------------->
 
-    MultiArray< RandomForest<float> > array_rf(num_levels);
+    ArrayVector< RandomForest<float> > array_rf(num_levels);
 
     // learn cascade --------------------------------->
 
