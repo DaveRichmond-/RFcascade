@@ -86,15 +86,15 @@ public:
 	}
 
 	template <class T1, class T2>
-    static void imagesToFeatures(const MultiArray<1, MultiArray<3, T1> > & imageArray, const MultiArray<1, MultiArray<2, T2> > & labelArray, MultiArray<2, T1> & rfFeatures, MultiArray<2, T2> & rfLabels, int downSample = 0, float downSampleFraction = 0.05)
+    static void imagesToFeatures(const ArrayVector<MultiArray<3, T1> > & imageArray, const ArrayVector<MultiArray<2, T2> > & labelArray, MultiArray<2, T1> & rfFeatures, MultiArray<2, T2> & rfLabels, int downSample = 0, float downSampleFraction = 0.05)
 	{
 		// calc some useful constants
-        int num_images = imageArray.size(0);
+        int num_images = imageArray.size();
 		if (!num_images) return;
 
-        int num_samples_per_image = imageArray(0).size(0)*imageArray(0).size(1);
+        int num_samples_per_image = imageArray[0].size(0) * imageArray[0].size(1);
         int num_samples = num_images*num_samples_per_image;
-        int num_features = imageArray(0).size(2);
+        int num_features = imageArray[0].size(2);
 
         rfFeatures.reshape(Shape2(num_samples, num_features));
         rfLabels.reshape(Shape2(num_samples, 1));
@@ -102,7 +102,7 @@ public:
         for (int imgIdx = 0; imgIdx < num_images; imgIdx++) {
             MultiArray<2, T1> rfFeaturesPerImage = rfFeatures.subarray(Shape2(imgIdx*num_samples_per_image, 0), Shape2((imgIdx + 1)*num_samples_per_image, num_features));
             MultiArray<2, T2> rfLabelsPerImage = rfLabels.subarray(Shape2(imgIdx*num_samples_per_image, 0), Shape2((imgIdx + 1)*num_samples_per_image, 1));
-            imageToFeatures<T1, T2>(imageArray(imgIdx), labelArray(imgIdx), rfFeaturesPerImage, rfLabelsPerImage, downSample, downSampleFraction);
+            imageToFeatures<T1, T2>(imageArray[imgIdx], labelArray[imgIdx], rfFeaturesPerImage, rfLabelsPerImage, downSample, downSampleFraction);
 		}
 	}
 
@@ -113,11 +113,7 @@ public:
         labels.reshape(image_shape);
 
         // consistency check
-        if (image.shape(0)*image.shape(1) != rfFeatures.size(0))
-        {
-            std::cout << "image shape is inconsistent with dimensions of rfFeatures" << std::endl;
-            exit(-1);
-        }
+        if (image.shape(0)*image.shape(1) != rfFeatures.size(0)) return;
 
         int count = 0;
         for (int j = 0; j<image.size(1); ++j) {
@@ -133,9 +129,42 @@ public:
 	}
 
     template <class T1, class T2>
-    static void featuresToImages()
+    static void featuresToImages(const MultiArray<2, T1> & rfFeatures, const MultiArray<2, T2> & rfLabels, ArrayVector<MultiArray<3, T1> > & imageArray, ArrayVector<MultiArray<2, T2> > & labelArray, const Shape2 image_shape)
     {
+        //
+        int num_samples = rfFeatures.size(0);
+        int num_features = rfFeatures.size(1);
+        int num_samples_per_image = image_shape[0] * image_shape[1];
+        int num_images = floor(num_samples/num_samples_per_image);
 
+        imageArray.resize(num_images);
+        labelArray.resize(num_images);
+
+        // consistency check
+        if (num_images*num_samples_per_image != num_samples) return;
+
+        for (int imgIdx = 0; imgIdx < num_images; ++imgIdx){
+            MultiArray<2, T1> rfFeaturesPerImage = rfFeatures.subarray(Shape2(imgIdx*num_samples_per_image, 0), Shape2((imgIdx + 1)*num_samples_per_image, num_features));
+            MultiArray<2, T2> rfLabelsPerImage = rfLabels.subarray(Shape2(imgIdx*num_samples_per_image, 0), Shape2((imgIdx + 1)*num_samples_per_image, 1));
+            featuresToImage(rfFeaturesPerImage, rfLabelsPerImage, imageArray[imgIdx], labelArray[imgIdx], image_shape);
+        }
+
+//        MultiArray<3, T1> tempImage(Shape3(image_shape[0],image_shape[1],rfLabels.size(1)));
+//        MultiArray<2, T2> tempLabels(image_shape);
+//        int count = 0;
+//        for (int imgIdx=0; imgIdx<num_images; ++imgIdx){
+//            for (int j=0; j<tempImage.size(1); ++j){
+//                for (int i=0; i<tempImage.size(0); ++i){
+//                    tempLabels(i,j) = rfLabels(count, 0);
+//                    for (int k=0; k<tempImage.size(2); ++k){
+//                        tempImage(i,j,k) = rfFeatures(count,k);
+//                    }
+//                    count++;
+//                }
+//                imageArray[imgIdx] = tempImage;
+//                labelArray[imgIdx] = tempLabels;
+//            }
+//        }
     }
 
     template <class T2>
