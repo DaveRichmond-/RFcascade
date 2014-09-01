@@ -118,65 +118,87 @@ public:
 		}
 	}
 
-	template <class T1, class T2>
-    static void featuresToImage(const MultiArray<2, T1> & rfFeatures, const MultiArray<2, T2> & rfLabels, MultiArray<3, T1> & image, MultiArray<2, T2> & labels, const Shape2 image_shape)
-	{
-        image.reshape(Shape3(image_shape[0], image_shape[1], rfFeatures.size(1)));
-        labels.reshape(image_shape);
+
+    template <class T1>
+    static void probsToImage(const MultiArray<2, T1> & probs, MultiArray<3, T1> & image, const Shape2 image_shape)
+    {
+        image.reshape(Shape3(image_shape[0], image_shape[1], probs.size(1)));
 
         // consistency check
-        if (image.shape(0)*image.shape(1) != rfFeatures.size(0)) return;
+        if (image_shape[0]*image_shape[1] != probs.size(0)) return;
 
         int count = 0;
         for (int j = 0; j<image.size(1); ++j) {
             for (int i = 0; i<image.size(0); ++i) {
-                labels(i,j) = rfLabels(count,0);
                 for (int k = 0; k<image.size(2); ++k) {
-                    image(i,j,k) = rfFeatures(count,k);
+                    image(i,j,k) = probs(count,k);
                 }
                 ++count;
             }
         }
+    }
 
-	}
-
-    template <class T1, class T2>
-    static void featuresToImages(const MultiArray<2, T1> & rfFeatures, const MultiArray<2, T2> & rfLabels, ArrayVector<MultiArray<3, T1> > & imageArray, ArrayVector<MultiArray<2, T2> > & labelArray, const Shape2 image_shape)
+    template <class T1>
+    static void probsToImages(const MultiArray<2, T1> & probs, ArrayVector<MultiArray<3, T1> > & imageArray, const Shape2 image_shape)
     {
         //
-        int num_samples = rfFeatures.size(0);
-        int num_features = rfFeatures.size(1);
+        int num_samples = probs.size(0);
+        int num_classes = probs.size(1);
         int num_samples_per_image = image_shape[0] * image_shape[1];
         int num_images = floor(num_samples/num_samples_per_image);
 
         imageArray.resize(num_images);
-        labelArray.resize(num_images);
 
         // consistency check
         if (num_images*num_samples_per_image != num_samples) return;
 
         for (int imgIdx = 0; imgIdx < num_images; ++imgIdx){
-            MultiArray<2, T1> rfFeaturesPerImage = rfFeatures.subarray(Shape2(imgIdx*num_samples_per_image, 0), Shape2((imgIdx + 1)*num_samples_per_image, num_features));
-            MultiArray<2, T2> rfLabelsPerImage = rfLabels.subarray(Shape2(imgIdx*num_samples_per_image, 0), Shape2((imgIdx + 1)*num_samples_per_image, 1));
-            featuresToImage(rfFeaturesPerImage, rfLabelsPerImage, imageArray[imgIdx], labelArray[imgIdx], image_shape);
+            MultiArray<2, T1> probsPerImage = probs.subarray(Shape2(imgIdx*num_samples_per_image, 0), Shape2((imgIdx + 1)*num_samples_per_image, num_classes));
+            probsToImage<T1>(probsPerImage, imageArray[imgIdx], image_shape);
+        }
+    }
+
+    template <class T1>
+    static void imageToProbs(const MultiArray<3, T1> & image, MultiArray<2, T1> & probs)
+    {
+        // calc some useful constants
+        int num_samples = image.size(0)*image.size(1);
+        int num_classes = image.size(2);
+        int count = 0;
+
+        // all samples are used
+        probs.reshape(Shape2(num_samples, num_classes));
+
+        //
+        for (int j = 0; j<image.size(1); ++j) {
+            for (int i = 0; i<image.size(0); ++i) {
+                for (int k = 0; k<num_classes; ++k) {
+                    probs(count, k) = image(i, j, k);
+                }
+                ++count;
+            }
         }
 
-//        MultiArray<3, T1> tempImage(Shape3(image_shape[0],image_shape[1],rfLabels.size(1)));
-//        MultiArray<2, T2> tempLabels(image_shape);
-//        int count = 0;
-//        for (int imgIdx=0; imgIdx<num_images; ++imgIdx){
-//            for (int j=0; j<tempImage.size(1); ++j){
-//                for (int i=0; i<tempImage.size(0); ++i){
-//                    tempLabels(i,j) = rfLabels(count, 0);
-//                    for (int k=0; k<tempImage.size(2); ++k){
-//                        tempImage(i,j,k) = rfFeatures(count,k);
-//                    }
-//                    count++;
-//                }
-//                imageArray[imgIdx] = tempImage;
-//                labelArray[imgIdx] = tempLabels;
-//            }
-//        }
+    }
+
+    template <class T1>
+    static void imagesToProbs(const ArrayVector<MultiArray<3, T1> > & imageArray, MultiArray<2, T1> & probs)
+    {
+        // calc some useful constants
+        int num_images = imageArray.size();
+        if (!num_images) return;
+
+        int num_samples_per_image = imageArray[0].size(0) * imageArray[0].size(1);
+        int num_samples = num_images*num_samples_per_image;
+        int num_classes = imageArray[0].size(2);
+
+        probs.reshape(Shape2(num_samples, num_classes));
+
+        for (int imgIdx = 0; imgIdx < num_images; imgIdx++) {
+            MultiArray<2, T1> probsPerImage = probs.subarray(Shape2(imgIdx*num_samples_per_image, 0), Shape2((imgIdx + 1)*num_samples_per_image, num_classes));
+            imageToProbs<T1>(imageArray[imgIdx], probsPerImage);
+        }
+
     }
 
     template <class T2>
@@ -216,6 +238,7 @@ public:
         return diceScore;
 
     }
+
 //
 
 	static ArrayVector<std::string> getAllFilenames(std::string basePath)
@@ -318,5 +341,70 @@ public:
 			imagetools::imagesToFeatures<float, UInt8>(imageArray, labelArray, array_train_features[chunkIdx], array_train_labels[chunkIdx]);
 		}
 	}
+
+
+
+/*
+    template <class T1, class T2>
+    static void featuresToImage(const MultiArray<2, T1> & rfFeatures, const MultiArray<2, T2> & rfLabels, MultiArray<3, T1> & image, MultiArray<2, T2> & labels, const Shape2 image_shape)
+    {
+        image.reshape(Shape3(image_shape[0], image_shape[1], rfFeatures.size(1)));
+        labels.reshape(image_shape);
+
+        // consistency check
+        if (image.shape(0)*image.shape(1) != rfFeatures.size(0)) return;
+
+        int count = 0;
+        for (int j = 0; j<image.size(1); ++j) {
+            for (int i = 0; i<image.size(0); ++i) {
+                labels(i,j) = rfLabels(count,0);
+                for (int k = 0; k<image.size(2); ++k) {
+                    image(i,j,k) = rfFeatures(count,k);
+                }
+                ++count;
+            }
+        }
+
+    }
+
+    template <class T1, class T2>
+    static void featuresToImages(const MultiArray<2, T1> & rfFeatures, const MultiArray<2, T2> & rfLabels, ArrayVector<MultiArray<3, T1> > & imageArray, ArrayVector<MultiArray<2, T2> > & labelArray, const Shape2 image_shape)
+    {
+        //
+        int num_samples = rfFeatures.size(0);
+        int num_features = rfFeatures.size(1);
+        int num_samples_per_image = image_shape[0] * image_shape[1];
+        int num_images = floor(num_samples/num_samples_per_image);
+
+        imageArray.resize(num_images);
+        labelArray.resize(num_images);
+
+        // consistency check
+        if (num_images*num_samples_per_image != num_samples) return;
+
+        for (int imgIdx = 0; imgIdx < num_images; ++imgIdx){
+            MultiArray<2, T1> rfFeaturesPerImage = rfFeatures.subarray(Shape2(imgIdx*num_samples_per_image, 0), Shape2((imgIdx + 1)*num_samples_per_image, num_features));
+            MultiArray<2, T2> rfLabelsPerImage = rfLabels.subarray(Shape2(imgIdx*num_samples_per_image, 0), Shape2((imgIdx + 1)*num_samples_per_image, 1));
+            featuresToImage<T1,T2>(rfFeaturesPerImage, rfLabelsPerImage, imageArray[imgIdx], labelArray[imgIdx], image_shape);
+        }
+
+//        MultiArray<3, T1> tempImage(Shape3(image_shape[0],image_shape[1],rfLabels.size(1)));
+//        MultiArray<2, T2> tempLabels(image_shape);
+//        int count = 0;
+//        for (int imgIdx=0; imgIdx<num_images; ++imgIdx){
+//            for (int j=0; j<tempImage.size(1); ++j){
+//                for (int i=0; i<tempImage.size(0); ++i){
+//                    tempLabels(i,j) = rfLabels(count, 0);
+//                    for (int k=0; k<tempImage.size(2); ++k){
+//                        tempImage(i,j,k) = rfFeatures(count,k);
+//                    }
+//                    count++;
+//                }
+//                imageArray[imgIdx] = tempImage;
+//                labelArray[imgIdx] = tempLabels;
+//            }
+//        }
+    }
+*/
 
 };
