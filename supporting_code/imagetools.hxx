@@ -11,11 +11,23 @@
 #include <vigra/multi_array.hxx>
 #include <vigra/multi_convolution.hxx>
 
+#define BOOST_FILESYSTEM_DEPRECATED
+
+#include "boost/filesystem/operations.hpp"
+#include "boost/filesystem/path.hpp"
+
+namespace fs = boost::filesystem;
+
 using namespace vigra;
 
 class imagetools
 {
 public:
+
+	static void getTrainingDataPaths(const char* basePath, ArrayVector<const char*> imagePaths, ArrayVector<const char*> labelPaths)
+	{
+		//
+	}
 
 	template <class T1, class T2> 
 	static void imageToFeatures(const MultiArray<3, T1> & image, const MultiArray<2, T2> & labels, MultiArray<2, T1> & rfFeatures, MultiArray<2, T2> & rfLabels, int downSample = 0, float downSampleFraction = 0.05)
@@ -86,15 +98,15 @@ public:
 	}
 
 	template <class T1, class T2>
-    static void imagesToFeatures(const MultiArray<1, MultiArray<3, T1> > & imageArray, const MultiArray<1, MultiArray<2, T2> > & labelArray, MultiArray<2, T1> & rfFeatures, MultiArray<2, T2> & rfLabels, int downSample = 0, float downSampleFraction = 0.05)
+	static void imagesToFeatures(const ArrayVector< MultiArray<3, T1> > & imageArray, const ArrayVector< MultiArray<2, T2> > & labelArray, MultiArray<2, T1> & rfFeatures, MultiArray<2, T2> & rfLabels, int downSample = 0, float downSampleFraction = 0.05)
 	{
 		// calc some useful constants
-        int num_images = imageArray.size(0);
+        int num_images = imageArray.size();
 		if (!num_images) return;
 
-        int num_samples_per_image = imageArray(0).size(0)*imageArray(0).size(1);
+        int num_samples_per_image = imageArray[0].size(0)*imageArray[0].size(1);
         int num_samples = num_images*num_samples_per_image;
-        int num_features = imageArray(0).size(2);
+        int num_features = imageArray[0].size(2);
 
         rfFeatures.reshape(Shape2(num_samples, num_features));
         rfLabels.reshape(Shape2(num_samples, 1));
@@ -102,7 +114,7 @@ public:
         for (int imgIdx = 0; imgIdx < num_images; imgIdx++) {
             MultiArray<2, T1> rfFeaturesPerImage = rfFeatures.subarray(Shape2(imgIdx*num_samples_per_image, 0), Shape2((imgIdx + 1)*num_samples_per_image, num_features));
             MultiArray<2, T2> rfLabelsPerImage = rfLabels.subarray(Shape2(imgIdx*num_samples_per_image, 0), Shape2((imgIdx + 1)*num_samples_per_image, 1));
-            imageToFeatures<T1, T2>(imageArray(imgIdx), labelArray(imgIdx), rfFeaturesPerImage, rfLabelsPerImage, downSample, downSampleFraction);
+            imageToFeatures<T1, T2>(imageArray[imgIdx], labelArray[imgIdx], rfFeaturesPerImage, rfLabelsPerImage, downSample, downSampleFraction);
 		}
 	}
 
@@ -176,4 +188,106 @@ public:
 
     }
 //
+
+	static ArrayVector<std::string> getAllFilenames(std::string basePath)
+	{
+		fs::path full_path(fs::initial_path<fs::path>());
+
+		full_path = fs::system_complete(fs::path(basePath.c_str()));
+
+		unsigned long file_count = 0;
+		unsigned long dir_count = 0;
+		unsigned long other_count = 0;
+		unsigned long err_count = 0;
+
+		if (!fs::exists(full_path))
+		{
+			std::cout << "\nNot found: " << full_path.file_string() << std::endl;
+			return ArrayVector<std::string>(0);
+		}
+
+		if (fs::is_directory(full_path))
+		{
+			std::cout << "\nIn directory: "
+				<< full_path.directory_string() << "\n\n";
+			fs::directory_iterator end_iter;
+			for (fs::directory_iterator dir_itr(full_path);
+				dir_itr != end_iter;
+				++dir_itr)
+			{
+				try
+				{
+					if (fs::is_directory(dir_itr->status()))
+					{
+						++dir_count;
+						std::cout << dir_itr->path().filename() << " [directory]\n";
+					}
+					else if (fs::is_regular_file(dir_itr->status()))
+					{
+						++file_count;
+						std::cout << dir_itr->path().filename() << "\n";
+					}
+					else
+					{
+						++other_count;
+						std::cout << dir_itr->path().filename() << " [other]\n";
+					}
+
+				}
+				catch (const std::exception & ex)
+				{
+					++err_count;
+					std::cout << dir_itr->path().filename() << " " << ex.what() << std::endl;
+				}
+			}
+			std::cout << "\n" << file_count << " files\n"
+				<< dir_count << " directories\n"
+				<< other_count << " others\n"
+				<< err_count << " errors\n";
+		}
+		else // must be a file
+		{
+			std::cout << "\nFound: " << full_path.file_string() << "\n";
+		}
+		return ArrayVector<std::string>(0);
+	}
+
+	static void imagetools::getArrayOfFeaturesAndLabels(int num_levels, std::string imgPath, std::string labelPath, ArrayVector< MultiArray<2, float> > array_train_features, ArrayVector< MultiArray<2, UInt8> > array_train_labels)
+	{
+		// get all names:
+		ArrayVector<std::string> allImageNames = imagetools::getAllFilenames(imgPath);
+		ArrayVector<std::string> allLabelNames = imagetools::getAllFilenames(labelPath);
+
+		int numNames = allImageNames.size();
+		int chunkSize = numNames / num_levels;
+
+		// load a chunk of them and put into feature array: 
+		for (int chunkIdx = 0; chunkIdx < num_levels; chunkIdx++)
+		{
+			int fromIdx = chunkIdx*chunkSize;
+			int toIdx = fromIdx+chunkSize; // toIdx is not included!
+			ArrayVector< MultiArray<3, float> > imageArray(toIdx - fromIdx);
+			for (int idx = fromIdx; idx < toIdx; idx++)
+			{
+				if (idx >= allImageNames.size()) break;
+				MultiArray<3, float> volume;
+				std::string name = allImageNames[idx];
+				std::string path = imgPath + name;
+				importVolume(imageArray[idx - fromIdx], name.c_str());
+			}
+			ArrayVector< MultiArray<2, UInt8> > labelArray(toIdx - fromIdx);
+			for (int idx = fromIdx; idx < toIdx; idx++)
+			{
+				if (idx >= allLabelNames.size()) break;
+				MultiArray<2, float> labelImg;
+				std::string name = allLabelNames[idx];
+				std::string path = labelPath + name;
+				importImage(name.c_str(), labelArray[idx - fromIdx]);
+			}
+			MultiArray<2, float> rfFeatures;
+			MultiArray<2, UInt8> rfLabels;
+			imagetools::imagesToFeatures<float, UInt8>(imageArray, labelArray, array_train_features[chunkIdx], array_train_labels[chunkIdx]);
+		}
+	}
+
 };
