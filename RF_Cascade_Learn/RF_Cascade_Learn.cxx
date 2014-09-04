@@ -16,14 +16,16 @@
 #include <vigra/hdf5impex.hxx>
 #include <vigra/random_forest_hdf5_impex.hxx>
 
+#include <imagetools.hxx>
+
 // #include <omp.h>
 
 using namespace vigra;
 
 int main(int argc, char ** argv)
 {
-
-    // for now, manually define some useful constants
+	
+	// for now, manually define some useful constants
     int num_classes = 2; // could pass in as argument, or extract from array_labels;
     int num_levels = atoi(argv[3]);
     int num_samples_per_level = 2;
@@ -38,18 +40,11 @@ int main(int argc, char ** argv)
      * (1) ARRAY OF FEATURE_ARRAYS,
      * (2) ARRAY OF LABEL_ARRAYS
      */
-
-    // import train, label and test images
-    ImageImportInfo train_features_info(argv[1]);
-    ImageImportInfo train_labels_info(argv[2]);
-
-    // create images of appropriate size
-    MultiArray<2, float> train_features(Shape2(train_features_info.shape()));
-    MultiArray<2, UInt8> train_labels(Shape2(train_labels_info.shape()));
-
-    // import the images just read
-    importImage(train_features_info, train_features);
-    importImage(train_labels_info, train_labels);
+	std::string imgPath("C:\\data\\somites\\Features\\");
+	std::string labelPath("C:\\data\\somites\\Labels\\");
+	ArrayVector< MultiArray<2, float> > array_train_features;
+	ArrayVector< MultiArray<2, UInt8> > array_train_labels;
+	imagetools::getArrayOfFeaturesAndLabels(num_levels, imgPath, labelPath, array_train_features, array_train_labels);
 
     // import RF options ----------------------->
 
@@ -66,24 +61,14 @@ int main(int argc, char ** argv)
 
     // calc some more useful constants ----------------------->
 
-    int num_train_samples = train_features.size(0);
-    int num_filt_features = train_features.size(1);
+    int num_train_samples = array_train_features[0].size(0);
+	int num_filt_features = array_train_features[0].size(1);
     int num_all_features = num_filt_features + 2*num_classes;
 
     std::cout << "num_train_samples: " << num_train_samples << std::endl;
     std::cout << "num_features: " << num_all_features << std::endl;
 
     // set up arrays of data ------------------------->
-
-    ArrayVector< MultiArray<2, float> > array_train_features(1);
-    ArrayVector< MultiArray<2, UInt8> > array_train_labels(1);
-
-    for (int i=0; i<num_levels; ++i){
-        (array_train_features[i]).reshape(Shape2(num_train_samples,num_all_features));
-        (array_train_features[i]).subarray(Shape2(0,0), Shape2(num_train_samples,num_filt_features)) = train_features;
-
-        array_train_labels[i] = train_labels;
-    }
 
     // set up array of RFs --------------------->
 
