@@ -277,7 +277,7 @@ public:
 					else if (fs::is_regular_file(dir_itr->status()))
 					{
 						++file_count;
-						std::cout << dir_itr->path().filename() << "\n";
+                        std::cout << dir_itr->path().filename() << "\n";
 					}
 					else
 					{
@@ -301,10 +301,11 @@ public:
 		{
 			std::cout << "\nFound: " << full_path.file_string() << "\n";
 		}
-		return ArrayVector<std::string>(0);
-	}
+        return ArrayVector<std::string>(0);
 
-	static void imagetools::getArrayOfFeaturesAndLabels(int num_levels, std::string imgPath, std::string labelPath, ArrayVector< MultiArray<2, float> > array_train_features, ArrayVector< MultiArray<2, UInt8> > array_train_labels)
+    }
+
+    static void getArrayOfFeaturesAndLabels(int num_levels, std::string imgPath, std::string labelPath, ArrayVector< MultiArray<2, float> > rfFeaturesArray, ArrayVector< MultiArray<2, UInt8> > rfLabelsArray)
 	{
 		// get all names:
 		ArrayVector<std::string> allImageNames = imagetools::getAllFilenames(imgPath);
@@ -338,7 +339,7 @@ public:
 			}
 			MultiArray<2, float> rfFeatures;
 			MultiArray<2, UInt8> rfLabels;
-			imagetools::imagesToFeatures<float, UInt8>(imageArray, labelArray, array_train_features[chunkIdx], array_train_labels[chunkIdx]);
+            imagetools::imagesToFeatures<float, UInt8>(imageArray, labelArray, rfFeaturesArray[chunkIdx], rfLabelsArray[chunkIdx]);
 		}
 	}
 

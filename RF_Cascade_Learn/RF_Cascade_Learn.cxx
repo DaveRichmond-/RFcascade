@@ -23,6 +23,9 @@ using namespace vigra;
 int main(int argc, char ** argv)
 {
 
+    typedef float ImageType;
+    typedef UInt8 LabelType;
+
 	// for now, manually define some useful constants
     int num_classes = 2; // could pass in as argument, or extract from array_labels;
     int num_levels = atoi(argv[3]);
@@ -34,16 +37,12 @@ int main(int argc, char ** argv)
 	
 	// import images --------------------->
 	
-    /* CALL FUNCTION HERE THAT ACCEPTS "MODE" OF USING GT DATA, AND RETURNS:
-     * (1) ARRAY OF FEATURE_ARRAYS,
-     * (2) ARRAY OF LABEL_ARRAYS
-     */
-	std::string imgPath("C:\\data\\somites\\Features\\");
-	std::string labelPath("C:\\data\\somites\\Labels\\");
-	ArrayVector< MultiArray<2, float> > array_train_features;
-	ArrayVector< MultiArray<2, UInt8> > array_train_labels;
-	imagetools::getArrayOfFeaturesAndLabels(num_levels, imgPath, labelPath, array_train_features, array_train_labels);
+    std::string imgPath(argv[1]);
+    std::string labelPath(argv[2]);
 
+    ArrayVector< MultiArray<2, float> > rfFeaturesArray;
+    ArrayVector< MultiArray<2, UInt8> > rfLabelsArray;
+    imagetools::getArrayOfFeaturesAndLabels(num_levels, imgPath, labelPath, rfFeaturesArray, rfLabelsArray);            // return shape2
 
     // set useful stuff
     Shape2 image_shape(atoi(argv[4]),atoi(argv[5]));                // return shape from initial call on directory.  all images will have the same shape...
@@ -64,8 +63,8 @@ int main(int argc, char ** argv)
 
     // calc some more useful constants ----------------------->
 
-    int num_train_samples = array_train_features[0].size(0);
-	int num_filt_features = array_train_features[0].size(1);
+    int num_train_samples = rfFeaturesArray[0].size(0);
+    int num_filt_features = rfFeaturesArray[0].size(1);
     int num_all_features = num_filt_features + 2*num_classes;
 
     std::cout << "num_train_samples: " << num_train_samples << std::endl;
@@ -80,17 +79,16 @@ int main(int argc, char ** argv)
     //
     ArrayVector< RandomForest<float> > rf_cascade(num_levels);
 
-    // tic
-    std::clock_t start;
-    float duration;
-    start = std::clock();
+//    // tic
+//    std::clock_t start;
+//    float duration;
+//    start = std::clock();
 
     // run cascade
     for (int i=0; i<num_levels; ++i)
     {
         // some useful constants
         int num_samples = rfFeaturesArray[i].size(0);
-        int num_filt_features = features1.size(2);                              // WILL NEED TO CHANGE
         int num_all_features = rfFeaturesArray[i].size(1);
 
         std::cout << "level " << i << std::endl;
@@ -113,6 +111,8 @@ int main(int argc, char ** argv)
             else
                 rf_cascade[j].predictProbabilities(rfFeaturesArray[i], probs);
 
+
+            int num_images_per_level =1;
             ArrayVector<MultiArray<3, ImageType> > probArray(num_images_per_level);
             imagetools::probsToImages<ImageType>(probs, probArray, image_shape);
 
