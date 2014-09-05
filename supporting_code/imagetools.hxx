@@ -112,10 +112,17 @@ public:
         rfLabels.reshape(Shape2(num_samples, 1));
 
         for (int imgIdx = 0; imgIdx < num_images; imgIdx++) {
-            MultiArray<2, T1> rfFeaturesPerImage = rfFeatures.subarray(Shape2(imgIdx*num_samples_per_image, 0), Shape2((imgIdx + 1)*num_samples_per_image, num_features));
-            MultiArray<2, T2> rfLabelsPerImage = rfLabels.subarray(Shape2(imgIdx*num_samples_per_image, 0), Shape2((imgIdx + 1)*num_samples_per_image, 1));
+//            MultiArray<2, T1> rfFeaturesPerImage = rfFeatures.subarray(Shape2(imgIdx*num_samples_per_image, 0), Shape2((imgIdx + 1)*num_samples_per_image, num_features));
+//            MultiArray<2, T2> rfLabelsPerImage = rfLabels.subarray(Shape2(imgIdx*num_samples_per_image, 0), Shape2((imgIdx + 1)*num_samples_per_image, 1));
+//            imageToFeatures<T1, T2>(imageArray[imgIdx], labelArray[imgIdx], rfFeaturesPerImage, rfLabelsPerImage, downSample, downSampleFraction);
+
+            MultiArray<2, T1> rfFeaturesPerImage;
+            MultiArray<2, T2> rfLabelsPerImage;
             imageToFeatures<T1, T2>(imageArray[imgIdx], labelArray[imgIdx], rfFeaturesPerImage, rfLabelsPerImage, downSample, downSampleFraction);
-		}
+
+            rfFeatures.subarray(Shape2(imgIdx*num_samples_per_image, 0), Shape2((imgIdx + 1)*num_samples_per_image, num_features)) = rfFeaturesPerImage;
+            rfLabels.subarray(Shape2(imgIdx*num_samples_per_image, 0), Shape2((imgIdx + 1)*num_samples_per_image, 1)) = rfLabelsPerImage;
+        }
 	}
 
 
@@ -262,6 +269,7 @@ public:
 		{
 			std::cout << "\nIn directory: "
 				<< full_path.directory_string() << "\n\n";
+            ArrayVector<std::string> allFilenames;
 			fs::directory_iterator end_iter;
 			for (fs::directory_iterator dir_itr(full_path);
 				dir_itr != end_iter;
@@ -276,9 +284,14 @@ public:
 					}
 					else if (fs::is_regular_file(dir_itr->status()))
 					{
-						++file_count;
-                        std::cout << dir_itr->path().filename() << "\n";
-					}
+                        boost::filesystem::path ext = dir_itr->path().extension();
+                        if (ext.string() == ".tif")
+                        {
+                            std::cout << dir_itr->path().filename() << "\n";
+                            allFilenames.push_back(dir_itr->path().filename().string());
+                            ++file_count;
+                        }
+                    }
 					else
 					{
 						++other_count;
@@ -296,6 +309,8 @@ public:
 				<< dir_count << " directories\n"
 				<< other_count << " others\n"
 				<< err_count << " errors\n";
+
+            return allFilenames;
 		}
 		else // must be a file
 		{
@@ -314,6 +329,10 @@ public:
 		int numNames = allImageNames.size();
 		int chunkSize = numNames / num_levels;
 
+        //
+        rfFeaturesArray.resize(num_levels);
+        rfLabelsArray.resize(num_levels);
+
 		// load a chunk of them and put into feature array: 
 		for (int chunkIdx = 0; chunkIdx < num_levels; chunkIdx++)
 		{
@@ -324,22 +343,43 @@ public:
 			{
 				if (idx >= allImageNames.size()) break;
 				MultiArray<3, float> volume;
-				std::string name = allImageNames[idx];
-				std::string path = imgPath + name;
-				importVolume(imageArray[idx - fromIdx], name.c_str());
+//				  std::string name = allImageNames[idx];
+//				  std::string path = imgPath + name;
+//                importVolume(imageArray[idx - fromIdx], name.c_str());
+                fs::path name(allImageNames[idx]);
+                fs::path path(imgPath);
+                fs::path full_path = path / name;                           // OS specific?
+                importVolume(volume, full_path.string());
+                imageArray[idx - fromIdx] = volume;
 			}
 			ArrayVector< MultiArray<2, UInt8> > labelArray(toIdx - fromIdx);
 			for (int idx = fromIdx; idx < toIdx; idx++)
 			{
 				if (idx >= allLabelNames.size()) break;
 				MultiArray<2, float> labelImg;
-				std::string name = allLabelNames[idx];
-				std::string path = labelPath + name;
-				importImage(name.c_str(), labelArray[idx - fromIdx]);
-			}
+//				  std::string name = allLabelNames[idx];
+//				  std::string path = labelPath + name;
+//                importImage(name.c_str(), labelArray[idx - fromIdx]);
+                fs::path name(allLabelNames[idx]);
+                fs::path path(labelPath);
+                fs::path full_path = path / name;                           // OS specific?
+                importImage(full_path.string(), labelImg);
+                labelArray[idx - fromIdx] = labelImg;
+            }
 			MultiArray<2, float> rfFeatures;
 			MultiArray<2, UInt8> rfLabels;
-            imagetools::imagesToFeatures<float, UInt8>(imageArray, labelArray, rfFeaturesArray[chunkIdx], rfLabelsArray[chunkIdx]);
+//            imagetools::imagesToFeatures<float, UInt8>(imageArray, labelArray, rfFeaturesArray[chunkIdx], rfLabelsArray[chunkIdx]);
+            imagetools::imagesToFeatures<float, UInt8>(imageArray, labelArray, rfFeatures, rfLabels);
+
+//            // some tests of the data
+//            float temp_count = 0;
+//            for (int temp_idx = 0; temp_idx < rfFeatures.size(); ++temp_idx){
+//                temp_count += rfFeatures[temp_idx];
+//            }
+//            std::cout << "contents of rfFeatures are: " << temp_count << std::endl;
+
+            rfFeaturesArray[chunkIdx] = rfFeatures;
+            rfLabelsArray[chunkIdx] = rfLabels;
 		}
 	}
 
