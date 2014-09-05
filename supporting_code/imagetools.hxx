@@ -320,7 +320,7 @@ public:
 
     }
 
-    static void getArrayOfFeaturesAndLabels(int num_levels, std::string imgPath, std::string labelPath, ArrayVector< MultiArray<2, float> > rfFeaturesArray, ArrayVector< MultiArray<2, UInt8> > rfLabelsArray)
+    static void getArrayOfFeaturesAndLabels(int num_levels, std::string imgPath, std::string labelPath, ArrayVector< MultiArray<2, float> > & rfFeaturesArray, ArrayVector< MultiArray<2, UInt8> > & rfLabelsArray)
 	{
 		// get all names:
 		ArrayVector<std::string> allImageNames = imagetools::getAllFilenames(imgPath);
