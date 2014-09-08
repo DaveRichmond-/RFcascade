@@ -14,7 +14,6 @@
 #include <vigra/random_forest_hdf5_impex.hxx>
 #include <vigra/hdf5impex.hxx>
 
-// #include <omp.h>
 #include <vigra/convolution.hxx>
 #include <imagetools.hxx>
 
@@ -26,136 +25,116 @@ int main(int argc, char ** argv)
     typedef float ImageType;
     typedef UInt8 LabelType;
 
-	// for now, manually define some useful constants
-    int num_classes = 2; // could pass in as argument, or extract from array_labels;
-    int num_levels = atoi(argv[3]);
-    int num_samples_per_level = 2;
+    // some user defined parameters
+    double smoothing_scale = 3.0;
 
-	// set up clock for timing
-	std::clock_t start;
-	float duration;
-	
 	// import images --------------------->
 	
     std::string imgPath(argv[1]);
     std::string labelPath(argv[2]);
 
+    int num_images = atoi(argv[3]);
+    int num_levels = atoi(argv[4]);
+
     ArrayVector< MultiArray<2, float> > rfFeaturesArray;
     ArrayVector< MultiArray<2, UInt8> > rfLabelsArray;
-    imagetools::getArrayOfFeaturesAndLabels(num_levels, imgPath, labelPath, rfFeaturesArray, rfLabelsArray);            // return shape2
+    Shape2 xy_dim(0,0);
 
-    // set useful stuff
-    Shape2 image_shape(atoi(argv[4]),atoi(argv[5]));                // return shape from initial call on directory.  all images will have the same shape...
-    double smoothing_scale = 3.0;
+    imagetools::getArrayOfFeaturesAndLabels(imgPath, labelPath, rfFeaturesArray, rfLabelsArray, xy_dim, num_levels, num_images);
 
-    // import RF options ----------------------->
+    // set up rf --------------------------------->
 
-    // import feature_mix
+    ArrayVector< RandomForest<float> > rf_cascade(num_levels);
+
+    int num_classes = atoi(argv[5]);
+    int tree_count = atoi(argv[6]);
+
     ArrayVector<int> feature_mix(3);
     feature_mix[0] = atoi(argv[7]);
     feature_mix[1] = atoi(argv[8]);
     feature_mix[2] = atoi(argv[9]);
+    int max_offset = atoi(argv[10]);
 
     // set early stopping depth
     int depth = atoi(argv[11]);
     int min_split_node_size = atoi(argv[12]);
     EarlyStopDepthAndNodeSize stopping(depth, min_split_node_size);
 
-    // calc some more useful constants ----------------------->
-
-    int num_train_samples = rfFeaturesArray[0].size(0);
-    int num_filt_features = rfFeaturesArray[0].size(1);
-    int num_all_features = num_filt_features + 2*num_classes;
-
-    std::cout << "num_train_samples: " << num_train_samples << std::endl;
-    std::cout << "num_features: " << num_all_features << std::endl;
-
-    // set up arrays of data ------------------------->
-
-    // set up array of RFs --------------------->
-
     // learn cascade --------------------------------->
 
-    //
-    ArrayVector< RandomForest<float> > rf_cascade(num_levels);
-
-//    // tic
-//    std::clock_t start;
-//    float duration;
-//    start = std::clock();
+    // tic
+    std::clock_t start;
+    float duration;
+    start = std::clock();
 
     // run cascade
     for (int i=0; i<num_levels; ++i)
     {
         // some useful constants
         int num_samples = rfFeaturesArray[i].size(0);
-        int num_all_features = rfFeaturesArray[i].size(1);
+        int num_filt_features = rfFeaturesArray[i].size(1);
+        int num_images_per_level = num_samples / (xy_dim[0]*xy_dim[1]);
 
-        std::cout << "level " << i << std::endl;
+        std::cout << "level: " << i << std::endl;
+        std::cout << "num images used: " << num_images_per_level << std::endl;
         std::cout << "num_samples: " << num_samples << std::endl;
-        if (i==0)
-            std::cout << "num_features: " << num_filt_features << std::endl;
-        else
-            std::cout << "num_features: " << num_all_features << std::endl;
+        std::cout << "num_filt_features: " << num_filt_features << std::endl;
+
+        MultiArray<2, ImageType> rfFeatures_wProbs;
 
         // generate prob maps for ith forest (from previous (i-1) forests)
         for (int j=0; j<i; ++j)
         {
+            // setup rfFeatures_wProbs
+            if (j==0)
+            {
+                rfFeatures_wProbs.reshape(Shape2(num_samples, num_filt_features + 2*num_classes));
+                rfFeatures_wProbs.subarray(Shape2(0,0), Shape2(num_samples,num_filt_features)) = rfFeaturesArray[i];
+            }
+
             // define probs to store output of predictProbabilities
             MultiArray<2, float> probs(Shape2(num_samples, num_classes));
             MultiArray<2, float> smoothProbs(Shape2(num_samples, num_classes));
 
             // generate new probability map
             if (j==0)
-                rf_cascade[j].predictProbabilities(rfFeaturesArray[i].subarray(Shape2(0,0), Shape2(num_samples,num_filt_features)), probs);    // there are no probs from previous rf, therefore don't look into this part of feature array
-            else
                 rf_cascade[j].predictProbabilities(rfFeaturesArray[i], probs);
+            else
+                rf_cascade[j].predictProbabilities(rfFeatures_wProbs, probs);
 
-
-            int num_images_per_level =1;
             ArrayVector<MultiArray<3, ImageType> > probArray(num_images_per_level);
-            imagetools::probsToImages<ImageType>(probs, probArray, image_shape);
+            imagetools::probsToImages<ImageType>(probs, probArray, xy_dim);
 
             // smooth the new probability maps
             ArrayVector<MultiArray<3, ImageType> > smoothProbArray(num_images_per_level);
             for (int k=0; k<num_images_per_level; ++k){
+                smoothProbArray[k].reshape(Shape3(xy_dim[0], xy_dim[1], num_classes));
                 for (int l=0; l<num_classes; ++l){
                     // smooth individual probability images (slices) by some method.  insert "model-based smoothing" here...
-                    gaussianSmoothing(probArray[k].bind<3>(l), smoothProbArray[k].bind<3>(l), smoothing_scale);
+                    gaussianSmoothing(probArray[k].bind<2>(l), smoothProbArray[k].bind<2>(l), smoothing_scale);
                 }
             }
             imagetools::imagesToProbs<ImageType>(smoothProbArray, smoothProbs);
 
             // update train_features with current probability map, and smoothed probability map
-            rfFeaturesArray[i].subarray(Shape2(0,num_filt_features), Shape2(num_samples,num_filt_features+num_classes)) = probs;
-            rfFeaturesArray[i].subarray(Shape2(0,num_filt_features+num_classes), Shape2(num_samples,num_all_features))  = smoothProbs;
+            rfFeatures_wProbs.subarray(Shape2(0,num_filt_features), Shape2(num_samples,num_filt_features+num_classes)) = probs;
+            rfFeatures_wProbs.subarray(Shape2(0,num_filt_features+num_classes), Shape2(num_samples,num_filt_features+2*num_classes)) = smoothProbs;
+
         }
 
+        // set options for new forest
+        rf_cascade[i].set_options().image_shape(xy_dim)
+                .tree_count(tree_count)
+                .use_stratification(RF_EQUAL)
+                .max_offset_x(max_offset)
+                .max_offset_y(max_offset)
+                .feature_mix(feature_mix);
+
         // learn ith forest
-        rf_cascade[i].set_options().image_shape(image_shape)
-                             .tree_count(atoi(argv[6]))
-                             .use_stratification(RF_EQUAL)
-                             .max_offset_x(atoi(argv[10]))
-                             .max_offset_y(atoi(argv[10]))
-                             .feature_mix(feature_mix);
-
-//        // some tests of the data
-//        std::cout << "shape of rfFeaturesArray[i] is: " << rfFeaturesArray[i].shape() << std::endl;
-//        int temp_count = 0;
-//        for (int temp_idx = 0; temp_idx < num_samples*num_filt_features; ++temp_idx){
-//            temp_count += rfFeaturesArray[i][temp_idx];
-//        }
-//        std::cout << "contents of rfFeaturesArray[i] are:" << temp_count << std::endl;
-
         if (i==0)
-            rf_cascade[i].learn(rfFeaturesArray[i].subarray(Shape2(0,0), Shape2(num_samples,num_filt_features)), rfLabelsArray[i], rf_default(), rf_default(), stopping);
-        else
             rf_cascade[i].learn(rfFeaturesArray[i], rfLabelsArray[i], rf_default(), rf_default(), stopping);
-
-        // save RFs one at a time (for now)
-        std::string rf_idx = static_cast<std::ostringstream*>( &(std::ostringstream() << i) )->str();
-        HDF5File hdf5_file("rf" + rf_idx, HDF5File::New);
-        rf_export_HDF5(rf_cascade[i], hdf5_file);
+        else
+            rf_cascade[i].learn(rfFeatures_wProbs, rfLabelsArray[i], rf_default(), rf_default(), stopping);
 
     }
 
@@ -163,4 +142,8 @@ int main(int argc, char ** argv)
 	duration = (std::clock() - start) / (float) CLOCKS_PER_SEC;
     std::cout << "time to learn cascade: " << duration << std::endl;
 	
+    // save RF cascade
+    HDF5File hdf5_file("rf_cascade", HDF5File::New);
+    rf_export_HDF5(rf_cascade, hdf5_file);
+
 }
