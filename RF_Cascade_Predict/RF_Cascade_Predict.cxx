@@ -5,6 +5,8 @@
 #include <math.h>
 #include <ctime>
 
+#include <vigra/matrix.hxx>
+
 #include <vigra/impex.hxx>
 #include <vigra/multi_impex.hxx>
 #include <vigra/multi_array.hxx>
@@ -27,41 +29,45 @@ int main(int argc, char ** argv)
     typedef float ImageType;
     typedef UInt8 LabelType;
 
-    // load test data and set up useful constants --------------------->
+    // some user defined parameters
+    double smoothing_scale = 3.0;
 
+    // import images --------------------->
+
+    std::string imgPath(argv[1]);
+    std::string labelPath(argv[2]);
+
+    ArrayVector< MultiArray<2, float> > rfFeaturesArray;
+    ArrayVector< MultiArray<2, UInt8> > rfLabelsArray;
+    Shape2 xy_dim(0,0);
+
+    imagetools::getArrayOfFeaturesAndLabels(imgPath, labelPath, rfFeaturesArray, rfLabelsArray, xy_dim, 1, 2);
+
+    int num_samples = rfFeaturesArray[0].size(0);
+    int num_images = num_samples / (xy_dim[0]*xy_dim[1]);
+    int num_filt_features = rfFeaturesArray[0].size(1);
+
+    std::cout << "num test images: " << num_images << std::endl;
+    std::cout << "num test samples: " << num_samples << std::endl;
 
     // Load RF --------------------------------->
 
-    RandomForest<float> rf;
-    HDF5File hdf5_file(argv[4], HDF5File::Open);
-    rf_import_HDF5(rf, hdf5_file);
+    std::string rfName(argv[3]);
 
-    // set image shape
-    rf.set_options().image_shape(Shape2(im_width, im_height));
+    ArrayVector<RandomForest<float> > rf_cascade;
+    HDF5File hdf5_file(rfName, HDF5File::Open);
+    rf_import_HDF5(rf_cascade, hdf5_file);
+
+    int num_classes = rf_cascade[0].class_count();
 
     // check import parameters
-    std::cout << "min split node size: " << rf.options().min_split_node_size_ << std::endl;
-    std::cout << "tree count: " << rf.options().tree_count_ << std::endl;
-    std::cout << "image shape: " << rf.options().image_shape_ << std::endl;
-
-    /* SPECIFY INPUT DATA / VARIABLES, THAT ARE NEEDED FOR THE REST OF THE PROGRAM
-
-    1) ArrayVector of RFs
-    2) a single array of rfFeatures.  Can do prediction on all input at the same time.
-    3) xy-dimensions of one image (as image_shape)
-    4) number of images that were input
-    5) num_filt_features
-
-    */
+    std::cout << "\n" << "check rf parameters after load" << std::endl;
+    std::cout << "tree count: " << rf_cascade[0].tree_count() << std::endl;
+    std::cout << "class count: " << num_classes << std::endl;
 
     // Predict Labels and save -------------------->
 
-    // // array for labels
-    MultiArray<2, UInt8> test_labels(Shape2(num_test_samples, 1));
-    rf.predictLabels(test_features, test_labels);
-
-
-
+    MultiArray<2, ImageType> rfFeatures_wProbs;
 
     // tic
     std::clock_t start;
@@ -69,41 +75,52 @@ int main(int argc, char ** argv)
     start = std::clock();
 
     // run cascade
-    for (int i=0; i<num_levels; ++i)
+    for (int i=0; i<rf_cascade.size(); ++i)
     {
-        // some useful constants
-        int num_samples = rfFeatures.size(0);
-//        int num_filt_features = features1.size(2);                              // WILL NEED TO CHANGE
-        int num_all_features = rfFeatures.size(1);
+
+        std::cout << "level: " << i << std::endl;
+
+        // set image shape
+        rf_cascade[i].set_options().image_shape(xy_dim);
+
+        // setup rfFeatures_wProbs
+        if (i==0)
+        {
+            rfFeatures_wProbs.reshape(Shape2(num_samples, num_filt_features + 2*num_classes));
+            rfFeatures_wProbs.subarray(Shape2(0,0), Shape2(num_samples,num_filt_features)) = rfFeaturesArray[0];
+        }
 
         // define probs to store output of predictProbabilities
         MultiArray<2, float> probs(Shape2(num_samples, num_classes));
         MultiArray<2, float> smoothProbs(Shape2(num_samples, num_classes));
 
         // generate new probability map
-        if (j==0)
-            rf_cascade[i].predictProbabilities(rfFeatures.subarray(Shape2(0,0), Shape2(num_samples,num_filt_features)), probs);    // there are no probs from previous rf, therefore don't look into this part of feature array
+        if (i==0)
+            rf_cascade[0].predictProbabilities(rfFeatures_wProbs.
+                                               subarray(Shape2(0,0), Shape2(num_samples,num_filt_features)), probs);
         else
-            rf_cascade[i].predictProbabilities(rfFeatures, probs);
+            rf_cascade[i].predictProbabilities(rfFeatures_wProbs, probs);
 
         ArrayVector<MultiArray<3, ImageType> > probArray(num_images);
-        imagetools::probsToImages<ImageType>(probs, probArray, image_shape);
+        imagetools::probsToImages<ImageType>(probs, probArray, xy_dim);
 
         // smooth the new probability maps
         ArrayVector<MultiArray<3, ImageType> > smoothProbArray(num_images);
         for (int k=0; k<num_images; ++k){
+            smoothProbArray[k].reshape(Shape3(xy_dim[0], xy_dim[1], num_classes));
             for (int l=0; l<num_classes; ++l){
                 // smooth individual probability images (slices) by some method.  insert "model-based smoothing" here...
-                gaussianSmoothing(probArray[k].bind<3>(l), smoothProbArray[k].bind<3>(l), smoothing_scale);
+                gaussianSmoothing(probArray[k].bind<2>(l), smoothProbArray[k].bind<2>(l), smoothing_scale);
             }
         }
         imagetools::imagesToProbs<ImageType>(smoothProbArray, smoothProbs);
 
         // update train_features with current probability map, and smoothed probability map
-        rfFeatures.subarray(Shape2(0,num_filt_features), Shape2(num_samples,num_filt_features+num_classes)) = probs;
-        rfFeatures.subarray(Shape2(0,num_filt_features+num_classes), Shape2(num_samples,num_all_features))  = smoothProbs;
+        rfFeatures_wProbs.subarray(Shape2(0,num_filt_features), Shape2(num_samples,num_filt_features+num_classes)) = probs;
+        rfFeatures_wProbs.subarray(Shape2(0,num_filt_features+num_classes), Shape2(num_samples,num_filt_features+2*num_classes)) = smoothProbs;
 
-        // save output
+        // save probability maps
+        /*
         std::string level_idx = static_cast<std::ostringstream*>( &(std::ostringstream() << i) )->str();
         for (int j=0; j<num_images; ++j)
         {
@@ -111,10 +128,31 @@ int main(int argc, char ** argv)
             VolumeExportInfo Export_info("level#" + level_idx + "_image#" + image_idx + "_probabilities", ".tif");
             exportVolume(probArray[j], Export_info);
         }
+        */
+
+        // convert probs to labels
+        MultiArray<2, UInt8> labels(Shape2(num_samples, 1));
+        for (int k = 0; k < labels.size(0); ++k)
+        {
+            rf_cascade[i].ext_param_.to_classlabel(linalg::argMax(probs.subarray(Shape2(k,0), Shape2(k+1,num_classes))), labels[k]);
+        }
+
+        ArrayVector<MultiArray<3, LabelType> > labelArray(num_images);
+        imagetools::probsToImages<LabelType>(labels, labelArray, xy_dim);
+
+        std::string level_idx = static_cast<std::ostringstream*>( &(std::ostringstream() << i) )->str();
+        for (int j=0; j<num_images; ++j)
+        {
+            std::string image_idx = static_cast<std::ostringstream*>( &(std::ostringstream() << j) )->str();
+            std::string fname("image#" + image_idx + "_level#" + level_idx);
+            VolumeExportInfo Export_info(fname.c_str(),".tif");
+            exportVolume(labelArray[j], Export_info);
+        }
+
     }
 
     // toc
     duration = (std::clock() - start) / (float) CLOCKS_PER_SEC;
-    std::cout << "time to learn cascade: " << duration << std::endl;
+    std::cout << "time to predict with cascade: " << duration << std::endl;
 
 }
