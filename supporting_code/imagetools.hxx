@@ -320,12 +320,17 @@ public:
 
     }
 
-    static void getArrayOfFeaturesAndLabels(int num_levels, std::string imgPath, std::string labelPath, ArrayVector< MultiArray<2, float> > & rfFeaturesArray, ArrayVector< MultiArray<2, UInt8> > & rfLabelsArray)
+    static void getArrayOfFeaturesAndLabels(std::string imgPath, std::string labelPath, ArrayVector< MultiArray<2, float> > & rfFeaturesArray, ArrayVector< MultiArray<2, UInt8> > & rfLabelsArray, Shape2 & xy_dim, int num_levels = 1, int num_images = 0)
 	{
-		// get all names:
+        // get all names:
 		ArrayVector<std::string> allImageNames = imagetools::getAllFilenames(imgPath);
 		ArrayVector<std::string> allLabelNames = imagetools::getAllFilenames(labelPath);
 
+        if (num_images)
+        {
+            allImageNames.resize(num_images);
+            allLabelNames.resize(num_images);
+        }
 		int numNames = allImageNames.size();
 		int chunkSize = numNames / num_levels;
 
@@ -365,6 +370,8 @@ public:
                 fs::path full_path = path / name;                           // OS specific?
                 importImage(full_path.string(), labelImg);
                 labelArray[idx - fromIdx] = labelImg;
+                if (xy_dim == Shape2(0,0))
+                    xy_dim = labelImg.shape();
             }
 			MultiArray<2, float> rfFeatures;
 			MultiArray<2, UInt8> rfLabels;
