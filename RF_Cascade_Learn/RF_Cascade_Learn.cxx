@@ -35,41 +35,46 @@ int main(int argc, char ** argv)
 
     int num_images = atoi(argv[3]);
     int num_levels = atoi(argv[4]);
+    int sampling = atoi(argv[5]);
 
     ArrayVector< MultiArray<2, float> > rfFeaturesArray;
     ArrayVector< MultiArray<2, UInt8> > rfLabelsArray;
     Shape2 xy_dim(0,0);
 
-    imagetools::getArrayOfFeaturesAndLabels(imgPath, labelPath, rfFeaturesArray, rfLabelsArray, xy_dim, num_levels, num_images);
+    imagetools::getArrayOfFeaturesAndLabels(imgPath, labelPath, rfFeaturesArray, rfLabelsArray, xy_dim, num_levels, num_images, sampling);
 
     // set up rf --------------------------------->
 
-    ArrayVector< RandomForest<float> > rf_cascade(num_levels);
+    ArrayVector< RandomForest<float> > rf_cascade;
 
-    int num_classes = atoi(argv[5]);
-    int tree_count = atoi(argv[6]);
+    int num_classes = atoi(argv[6]);
+    int tree_count = atoi(argv[7]);
 
     ArrayVector<int> feature_mix(3);
-    feature_mix[0] = atoi(argv[7]);
-    feature_mix[1] = atoi(argv[8]);
-    feature_mix[2] = atoi(argv[9]);
-    int max_offset = atoi(argv[10]);
+    feature_mix[0] = atoi(argv[8]);
+    feature_mix[1] = atoi(argv[9]);
+    feature_mix[2] = atoi(argv[10]);
+
+    int max_offset = atoi(argv[11]) / sampling;        // account for resampling!
+    std::cout << "\n" << "scaled max offset = " << max_offset << std::endl;
 
     // set early stopping depth
-    int depth = atoi(argv[11]);
-    int min_split_node_size = atoi(argv[12]);
+    int depth = atoi(argv[12]);
+    int min_split_node_size = atoi(argv[13]);
     EarlyStopDepthAndNodeSize stopping(depth, min_split_node_size);
 
     // learn cascade --------------------------------->
 
-    // tic
+    // set up clock
     std::clock_t start;
     float duration;
-    start = std::clock();
 
     // run cascade
     for (int i=0; i<num_levels; ++i)
     {
+        // tic
+        start = std::clock();
+
         // some useful constants
         int num_samples = rfFeaturesArray[i].size(0);
         int num_filt_features = rfFeaturesArray[i].size(1);
@@ -122,6 +127,10 @@ int main(int argc, char ** argv)
 
         }
 
+        // create space for next forest in the cascade
+        RandomForest<float> rf;
+        rf_cascade.push_back(rf);
+
         // set options for new forest
         rf_cascade[i].set_options().image_shape(xy_dim)
                 .tree_count(tree_count)
@@ -136,14 +145,14 @@ int main(int argc, char ** argv)
         else
             rf_cascade[i].learn(rfFeatures_wProbs, rfLabelsArray[i], rf_default(), rf_default(), stopping);
 
-    }
+        // toc
+        duration = ((std::clock() - start) / (float) CLOCKS_PER_SEC) / 60.0;
+        std::cout << "time to learn level " << i << " [min]: " << duration << std::endl;
 
-    // toc
-	duration = (std::clock() - start) / (float) CLOCKS_PER_SEC;
-    std::cout << "time to learn cascade: " << duration << std::endl;
-	
-    // save RF cascade
-    HDF5File hdf5_file("rf_cascade", HDF5File::New);
-    rf_export_HDF5(rf_cascade, hdf5_file);
+        // save RF cascade after each level (to be safe)
+        HDF5File hdf5_file("rf_cascade", HDF5File::New);
+        rf_export_HDF5(rf_cascade, hdf5_file);
+
+    }
 
 }
