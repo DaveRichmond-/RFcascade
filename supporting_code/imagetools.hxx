@@ -29,83 +29,38 @@ public:
 		//
 	}
 
-	template <class T1, class T2> 
-	static void imageToFeatures(const MultiArray<3, T1> & image, const MultiArray<2, T2> & labels, MultiArray<2, T1> & rfFeatures, MultiArray<2, T2> & rfLabels, int downSample = 0, float downSampleFraction = 0.05)
-	{
-		// calc some useful constants
-        int num_samples = image.size(0)*image.size(1);
-		int num_features = image.size(2);
+    template <class T1, class T2>
+    static void imageToFeatures(const MultiArray<3, T1> & image, const MultiArray<2, T2> & labels, MultiArray<2, T1> & rfFeatures, MultiArray<2, T2> & rfLabels, int sampling = 1)
+    {
+        // calc some useful constants
+        int num_samples = static_cast<int>(ceil(static_cast<float>(image.size(0))/sampling)) * static_cast<int>(ceil(static_cast<float>(image.size(1))/sampling));
+        int num_features = image.size(2);
+
+        // initialize arrays
+        rfFeatures.reshape(Shape2(num_samples, num_features));
+        rfLabels.reshape(Shape2(num_samples, 1));
+
         int count = 0;
-        int num_used_samples = 0;
-
-		// 
-        if (downSample)
-		{
-			// initialize
-            MultiArray<2, T1> rfFeatures_temp;
-            MultiArray<2, T2> rfLabels_temp;
-            rfFeatures_temp.reshape(Shape2(num_samples, num_features));
-            rfLabels_temp.reshape(Shape2(num_samples, 1));
-
-            MersenneTwister random;
-			
-			for (int j = 0; j<image.size(1); ++j) {
-				for (int i = 0; i<image.size(0); ++i) {
-					if (labels(i, j) == 0) {
-						if (random.uniform() <= downSampleFraction) {
-                            rfLabels_temp(count, 0) = labels(i, j);
-							for (int k = 0; k<num_features; ++k) {
-                                rfFeatures_temp(count, k) = image(i, j, k);
-							}
-                            ++count;
-						}
-					}
-					else {
-                        rfLabels_temp(count, 0) = labels(i, j);
-						for (int k = 0; k<num_features; ++k) {
-                            rfFeatures_temp(count, k) = image(i, j, k);
-						}
-                        ++count;
-					}
-				}
-			}
-            num_used_samples = count;
-
-            // allocate memory and transfer from 'temp' arrays
-            rfFeatures.reshape(Shape2(num_used_samples,num_features));
-            rfFeatures = rfFeatures_temp.subarray(Shape2(0,0),Shape2(num_used_samples,num_features));
-
-            rfLabels.reshape(Shape2(num_used_samples,1));
-            rfLabels = rfLabels_temp.subarray(Shape2(0,0),Shape2(num_used_samples,1));
-        }
-        else {
-            // all samples are used
-            num_used_samples = num_samples;
-            rfFeatures.reshape(Shape2(num_used_samples, num_features));
-            rfLabels.reshape(Shape2(num_used_samples, 1));
-
-            //
-            for (int j = 0; j<image.size(1); ++j) {
-                for (int i = 0; i<image.size(0); ++i) {
-                    rfLabels(count, 0) = labels(i, j);
-                    for (int k = 0; k<num_features; ++k) {
-                        rfFeatures(count, k) = image(i, j, k);
-                    }
-                    ++count;
+        for (int j = 0; j<image.size(1); j += sampling) {
+            for (int i = 0; i<image.size(0); i += sampling) {
+                rfLabels(count, 0) = labels(i, j);
+                for (int k = 0; k<num_features; ++k) {
+                    rfFeatures(count, k) = image(i, j, k);
                 }
+                ++count;
             }
-		}		
-	}
+        }
+    }
 
 	template <class T1, class T2>
-	static void imagesToFeatures(const ArrayVector< MultiArray<3, T1> > & imageArray, const ArrayVector< MultiArray<2, T2> > & labelArray, MultiArray<2, T1> & rfFeatures, MultiArray<2, T2> & rfLabels, int downSample = 0, float downSampleFraction = 0.05)
+    static void imagesToFeatures(const ArrayVector< MultiArray<3, T1> > & imageArray, const ArrayVector< MultiArray<2, T2> > & labelArray, MultiArray<2, T1> & rfFeatures, MultiArray<2, T2> & rfLabels, int sampling = 1)
 	{
 		// calc some useful constants
         int num_images = imageArray.size();
 		if (!num_images) return;
 
-        int num_samples_per_image = imageArray[0].size(0) * imageArray[0].size(1);
-        int num_samples = num_images*num_samples_per_image;
+        int num_samples_per_image = static_cast<int>(ceil(static_cast<float>(imageArray[0].size(0))/sampling)) * static_cast<int>(ceil(static_cast<float>(imageArray[0].size(1))/sampling));
+        int num_samples = num_images * num_samples_per_image;
         int num_features = imageArray[0].size(2);
 
         rfFeatures.reshape(Shape2(num_samples, num_features));
@@ -118,7 +73,7 @@ public:
 
             MultiArray<2, T1> rfFeaturesPerImage;
             MultiArray<2, T2> rfLabelsPerImage;
-            imageToFeatures<T1, T2>(imageArray[imgIdx], labelArray[imgIdx], rfFeaturesPerImage, rfLabelsPerImage, downSample, downSampleFraction);
+            imageToFeatures<T1, T2>(imageArray[imgIdx], labelArray[imgIdx], rfFeaturesPerImage, rfLabelsPerImage, sampling);
 
             rfFeatures.subarray(Shape2(imgIdx*num_samples_per_image, 0), Shape2((imgIdx + 1)*num_samples_per_image, num_features)) = rfFeaturesPerImage;
             rfLabels.subarray(Shape2(imgIdx*num_samples_per_image, 0), Shape2((imgIdx + 1)*num_samples_per_image, 1)) = rfLabelsPerImage;
@@ -320,7 +275,14 @@ public:
 
     }
 
-    static void getArrayOfFeaturesAndLabels(std::string imgPath, std::string labelPath, ArrayVector< MultiArray<2, float> > & rfFeaturesArray, ArrayVector< MultiArray<2, UInt8> > & rfLabelsArray, Shape2 & xy_dim, int num_levels = 1, int num_images = 0)
+    static void getArrayOfFeaturesAndLabels(std::string imgPath,
+                                            std::string labelPath,
+                                            ArrayVector< MultiArray<2, float> > & rfFeaturesArray,
+                                            ArrayVector< MultiArray<2, UInt8> > & rfLabelsArray,
+                                            Shape2 & xy_dim,
+                                            int num_levels = 1,
+                                            int num_images = 0,
+                                            int sampling = 1)
 	{
         // get all names:
 		ArrayVector<std::string> allImageNames = imagetools::getAllFilenames(imgPath);
@@ -370,20 +332,18 @@ public:
                 fs::path full_path = path / name;                           // OS specific?
                 importImage(full_path.string(), labelImg);
                 labelArray[idx - fromIdx] = labelImg;
-                if (xy_dim == Shape2(0,0))
-                    xy_dim = labelImg.shape();
             }
 			MultiArray<2, float> rfFeatures;
 			MultiArray<2, UInt8> rfLabels;
 //            imagetools::imagesToFeatures<float, UInt8>(imageArray, labelArray, rfFeaturesArray[chunkIdx], rfLabelsArray[chunkIdx]);
-            imagetools::imagesToFeatures<float, UInt8>(imageArray, labelArray, rfFeatures, rfLabels);
+            imagetools::imagesToFeatures<float, UInt8>(imageArray, labelArray, rfFeatures, rfLabels, sampling);
 
-//            // some tests of the data
-//            float temp_count = 0;
-//            for (int temp_idx = 0; temp_idx < rfFeatures.size(); ++temp_idx){
-//                temp_count += rfFeatures[temp_idx];
-//            }
-//            std::cout << "contents of rfFeatures are: " << temp_count << std::endl;
+            // set xy_dim, accounting for resampling
+            if (chunkIdx == 0)
+            {
+                xy_dim[0] = static_cast<int>(ceil(static_cast<float>(imageArray[0].size(0))/sampling));
+                xy_dim[1] = static_cast<int>(ceil(static_cast<float>(imageArray[0].size(1))/sampling));
+            }
 
             rfFeaturesArray[chunkIdx] = rfFeatures;
             rfLabelsArray[chunkIdx] = rfLabels;
@@ -452,6 +412,104 @@ public:
 //                labelArray[imgIdx] = tempLabels;
 //            }
 //        }
+    }
+
+    // old versions of imageToFeatures and imagesToFeatures.  changed above to a simpler (uniform) down-sampling strategy.  delete when happy with new versions.
+
+    template <class T1, class T2>
+    static void imageToFeatures(const MultiArray<3, T1> & image, const MultiArray<2, T2> & labels, MultiArray<2, T1> & rfFeatures, MultiArray<2, T2> & rfLabels, int downSample = 0, float downSampleFraction = 0.05)
+    {
+        // calc some useful constants
+        int num_samples = image.size(0)*image.size(1);
+        int num_features = image.size(2);
+        int count = 0;
+        int num_used_samples = 0;
+
+        //
+        if (downSample)
+        {
+            // initialize
+            MultiArray<2, T1> rfFeatures_temp;
+            MultiArray<2, T2> rfLabels_temp;
+            rfFeatures_temp.reshape(Shape2(num_samples, num_features));
+            rfLabels_temp.reshape(Shape2(num_samples, 1));
+
+            MersenneTwister random;
+
+            for (int j = 0; j<image.size(1); ++j) {
+                for (int i = 0; i<image.size(0); ++i) {
+                    if (labels(i, j) == 0) {
+                        if (random.uniform() <= downSampleFraction) {
+                            rfLabels_temp(count, 0) = labels(i, j);
+                            for (int k = 0; k<num_features; ++k) {
+                                rfFeatures_temp(count, k) = image(i, j, k);
+                            }
+                            ++count;
+                        }
+                    }
+                    else {
+                        rfLabels_temp(count, 0) = labels(i, j);
+                        for (int k = 0; k<num_features; ++k) {
+                            rfFeatures_temp(count, k) = image(i, j, k);
+                        }
+                        ++count;
+                    }
+                }
+            }
+            num_used_samples = count;
+
+            // allocate memory and transfer from 'temp' arrays
+            rfFeatures.reshape(Shape2(num_used_samples,num_features));
+            rfFeatures = rfFeatures_temp.subarray(Shape2(0,0),Shape2(num_used_samples,num_features));
+
+            rfLabels.reshape(Shape2(num_used_samples,1));
+            rfLabels = rfLabels_temp.subarray(Shape2(0,0),Shape2(num_used_samples,1));
+        }
+        else {
+            // all samples are used
+            num_used_samples = num_samples;
+            rfFeatures.reshape(Shape2(num_used_samples, num_features));
+            rfLabels.reshape(Shape2(num_used_samples, 1));
+
+            //
+            for (int j = 0; j<image.size(1); ++j) {
+                for (int i = 0; i<image.size(0); ++i) {
+                    rfLabels(count, 0) = labels(i, j);
+                    for (int k = 0; k<num_features; ++k) {
+                        rfFeatures(count, k) = image(i, j, k);
+                    }
+                    ++count;
+                }
+            }
+        }
+    }
+
+    template <class T1, class T2>
+    static void imagesToFeatures(const ArrayVector< MultiArray<3, T1> > & imageArray, const ArrayVector< MultiArray<2, T2> > & labelArray, MultiArray<2, T1> & rfFeatures, MultiArray<2, T2> & rfLabels, int downSample = 0, float downSampleFraction = 0.05)
+    {
+        // calc some useful constants
+        int num_images = imageArray.size();
+        if (!num_images) return;
+
+        int num_samples_per_image = imageArray[0].size(0) * imageArray[0].size(1);
+        int num_samples = num_images*num_samples_per_image;
+        int num_features = imageArray[0].size(2);
+
+        rfFeatures.reshape(Shape2(num_samples, num_features));
+        rfLabels.reshape(Shape2(num_samples, 1));
+
+        for (int imgIdx = 0; imgIdx < num_images; imgIdx++) {
+//            MultiArray<2, T1> rfFeaturesPerImage = rfFeatures.subarray(Shape2(imgIdx*num_samples_per_image, 0), Shape2((imgIdx + 1)*num_samples_per_image, num_features));
+//            MultiArray<2, T2> rfLabelsPerImage = rfLabels.subarray(Shape2(imgIdx*num_samples_per_image, 0), Shape2((imgIdx + 1)*num_samples_per_image, 1));
+//            imageToFeatures<T1, T2>(imageArray[imgIdx], labelArray[imgIdx], rfFeaturesPerImage, rfLabelsPerImage, downSample, downSampleFraction);
+
+            MultiArray<2, T1> rfFeaturesPerImage;
+            MultiArray<2, T2> rfLabelsPerImage;
+            imageToFeatures<T1, T2>(imageArray[imgIdx], labelArray[imgIdx], rfFeaturesPerImage, rfLabelsPerImage, downSample, downSampleFraction);
+
+            rfFeatures.subarray(Shape2(imgIdx*num_samples_per_image, 0), Shape2((imgIdx + 1)*num_samples_per_image, num_features)) = rfFeaturesPerImage;
+            rfLabels.subarray(Shape2(imgIdx*num_samples_per_image, 0), Shape2((imgIdx + 1)*num_samples_per_image, 1)) = rfLabelsPerImage;
+        }
     }
 */
 
