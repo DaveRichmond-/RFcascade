@@ -42,9 +42,8 @@ int main(int argc, char ** argv)
     Shape2 xy_dim(0,0);
 
     int num_images = atoi(argv[3]);
-    int sampling = atoi(argv[4]);
 
-    imagetools::getArrayOfFeaturesAndLabels(imgPath, labelPath, rfFeaturesArray, rfLabelsArray, xy_dim, 1, num_images, sampling);
+    imagetools::getArrayOfFeaturesAndLabels(imgPath, labelPath, rfFeaturesArray, rfLabelsArray, xy_dim, 1, num_images);
 
     int num_samples = rfFeaturesArray[0].size(0);
     num_images = num_samples / (xy_dim[0]*xy_dim[1]);
@@ -55,7 +54,7 @@ int main(int argc, char ** argv)
 
     // Load RF --------------------------------->
 
-    std::string rfName(argv[5]);
+    std::string rfName(argv[4]);
 
     ArrayVector<RandomForest<float> > rf_cascade;
     HDF5File hdf5_file(rfName, HDF5File::Open);

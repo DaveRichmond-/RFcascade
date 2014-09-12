@@ -132,12 +132,16 @@ int main(int argc, char ** argv)
         rf_cascade.push_back(rf);
 
         // set options for new forest
-        rf_cascade[i].set_options().image_shape(xy_dim)
+        rf_cascade[i].set_options()
+                .scale(sampling)
+                .image_shape(xy_dim)
                 .tree_count(tree_count)
                 .use_stratification(RF_EQUAL)
                 .max_offset_x(max_offset)
                 .max_offset_y(max_offset)
                 .feature_mix(feature_mix);
+
+        std::cout << "scale factor: " << rf_cascade[i].options().scale_ << std::endl;
 
         // learn ith forest
         if (i==0)
