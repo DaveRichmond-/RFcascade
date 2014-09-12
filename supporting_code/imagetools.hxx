@@ -350,6 +350,94 @@ public:
 		}
 	}
 
+    template <class T1, class T2>
+    static void weightedProbMap(const MultiArray<2, T1> & rfFeatures, const MultiArray<2, T2> & rfLabels, RandomForest<float> rf, Shape2 xy_dim, int lambda, int mode, MultiArray<2, float> & predProbs, MultiArray<2, T2> & predLabels)
+    {
+        //
+        int num_samples = rfFeatures.size(0);
+        int num_features = rfFeatures.size(1);
+        int num_classes = rf.class_count();
+        int num_trees = rf.tree_count();
+
+        //
+        predProbs.reshape(Shape2(num_samples, num_classes));
+        predLabels.reshape(Shape2(num_samples, 1));
+
+        rf.set_options().image_shape(Shape2(xy_dim[0], xy_dim[1]));
+
+        // do one sample at a time
+        for (int i = 0; i < num_samples; ++i)
+        {
+
+            // initialize cumulative probs and weights over all trees
+            MultiArray<2, float> cumProbs(Shape2(1, num_classes));
+            cumProbs.init(0);
+            float cumW = 0;
+
+            // loop over trees (actually over forests)
+            for (int t = 0; t < num_trees; ++t)
+            {
+                //
+                MultiArray<2, float> probs(Shape2(1, num_classes));
+
+                double totalWeight = 0.0;
+                ArrayVector<double>::const_iterator weights;
+                rf.trees_[t].set_options() = rf.options_;
+
+                weights = rf.trees_[t].predict(rfFeatures, i);
+
+                //update votecount.
+                int weighted = rf.trees_[t].options_.predict_weighted_;
+                for(int l=0; l<num_classes; ++l)
+                {
+                    double cur_w = weights[l] * (weighted * (*(weights-1)) + (1-weighted));
+                    probs(0, l) += static_cast<float>(cur_w);
+                    totalWeight += cur_w;
+                }
+
+                // normalize
+                for(int l=0; l< num_classes; ++l)
+                {
+                    probs(0, l) /= detail::RequiresExplicitCast<float>::cast(totalWeight);
+                }
+
+                // calculate some fancy weights
+                float w;
+                switch (mode)
+                {
+                case 0:
+                {
+                    w = 1.0;
+                }   break;
+                case 1:
+                {
+                    UInt8 treeLabel = 0;
+                    rf.ext_param_.to_classlabel(linalg::argMax(probs), treeLabel);
+                    w = (rfLabels[i] == treeLabel)? 1.0 + lambda : 1.0;
+                }    break;
+                case 2:
+                {
+                    w = 1.0 + lambda * probs(0,rfLabels[i]);
+                }    break;
+                }
+
+                // accumulate probs
+                {
+                    using namespace multi_math;
+                    cumProbs += w * probs;
+                }
+                cumW += w;
+            }
+
+            // normalize cumulative probabilities
+            {
+                using namespace multi_math;
+                cumProbs /= cumW;
+            }
+            predProbs.subarray(Shape2(i,0), Shape2(i+1,num_classes)) = cumProbs;
+            rf.ext_param_.to_classlabel(linalg::argMax(cumProbs), predLabels[i]);
+        }
+    }
 
 
 /*
