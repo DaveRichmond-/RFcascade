@@ -80,7 +80,7 @@ int main(int argc, char ** argv)
         int num_filt_features = rfFeaturesArray[i].size(1);
         int num_images_per_level = num_samples / (xy_dim[0]*xy_dim[1]);
 
-        std::cout << "level: " << i << std::endl;
+        std::cout << "\n" << "level: " << i << std::endl;
         std::cout << "num images used: " << num_images_per_level << std::endl;
         std::cout << "num_samples: " << num_samples << std::endl;
         std::cout << "num_filt_features: " << num_filt_features << std::endl;
@@ -100,6 +100,10 @@ int main(int argc, char ** argv)
             // define probs to store output of predictProbabilities
             MultiArray<2, float> probs(Shape2(num_samples, num_classes));
             MultiArray<2, float> smoothProbs(Shape2(num_samples, num_classes));
+
+            // set test scale
+            rf_cascade[j].set_options().test_scale(sampling);
+            std::cout << "test scale factor: " << rf_cascade[j].options().test_scale_ << std::endl;
 
             // generate new probability map
             if (j==0)
@@ -133,7 +137,7 @@ int main(int argc, char ** argv)
 
         // set options for new forest
         rf_cascade[i].set_options()
-                .scale(sampling)
+                .train_scale(sampling)
                 .image_shape(xy_dim)
                 .tree_count(tree_count)
                 .use_stratification(RF_EQUAL)
@@ -141,7 +145,7 @@ int main(int argc, char ** argv)
                 .max_offset_y(max_offset)
                 .feature_mix(feature_mix);
 
-        std::cout << "scale factor: " << rf_cascade[i].options().scale_ << std::endl;
+        std::cout << "training scale factor: " << rf_cascade[i].options().train_scale_ << std::endl;
 
         // learn ith forest
         if (i==0)

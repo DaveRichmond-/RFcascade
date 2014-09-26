@@ -42,8 +42,9 @@ int main(int argc, char ** argv)
     Shape2 xy_dim(0,0);
 
     int num_images = atoi(argv[3]);
+    int sampling = atoi(argv[4]);
 
-    imagetools::getArrayOfFeaturesAndLabels(imgPath, labelPath, rfFeaturesArray, rfLabelsArray, xy_dim, 1, num_images);
+    imagetools::getArrayOfFeaturesAndLabels(imgPath, labelPath, rfFeaturesArray, rfLabelsArray, xy_dim, 1, num_images, sampling);
 
     int num_samples = rfFeaturesArray[0].size(0);
     num_images = num_samples / (xy_dim[0]*xy_dim[1]);
@@ -54,7 +55,7 @@ int main(int argc, char ** argv)
 
     // Load RF --------------------------------->
 
-    std::string rfName(argv[4]);
+    std::string rfName(argv[5]);
 
     ArrayVector<RandomForest<float> > rf_cascade;
     HDF5File hdf5_file(rfName, HDF5File::Open);
@@ -85,6 +86,10 @@ int main(int argc, char ** argv)
         // set image shape
         rf_cascade[i].set_options().image_shape(xy_dim);
 
+        // set test scale
+        rf_cascade[i].set_options().test_scale(sampling);
+        std::cout << "test scale factor: " << rf_cascade[i].options().test_scale_ << std::endl;
+
         // setup rfFeatures_wProbs
         if (i==0)
         {
@@ -98,8 +103,7 @@ int main(int argc, char ** argv)
 
         // generate new probability map
         if (i==0)
-            rf_cascade[0].predictProbabilities(rfFeatures_wProbs.
-                                               subarray(Shape2(0,0), Shape2(num_samples,num_filt_features)), probs);
+            rf_cascade[0].predictProbabilities(rfFeaturesArray[0], probs);
         else
             rf_cascade[i].predictProbabilities(rfFeatures_wProbs, probs);
 
@@ -121,18 +125,6 @@ int main(int argc, char ** argv)
         rfFeatures_wProbs.subarray(Shape2(0,num_filt_features), Shape2(num_samples,num_filt_features+num_classes)) = probs;
         rfFeatures_wProbs.subarray(Shape2(0,num_filt_features+num_classes), Shape2(num_samples,num_filt_features+2*num_classes)) = smoothProbs;
 
-        // save probability maps
-        /*
-        std::string level_idx = static_cast<std::ostringstream*>( &(std::ostringstream() << i) )->str();
-        for (int j=0; j<num_images; ++j)
-        {
-            std::string image_idx = static_cast<std::ostringstream*>( &(std::ostringstream() << j) )->str();
-            std::string fname("level#" + level_idx + "_image#" + image_idx + "_smoothProbabilities");
-            VolumeExportInfo Export_info(fname.c_str(), ".tif");
-            exportVolume(smoothProbArray[j], Export_info);
-        }
-        */
-
         // convert probs to labels
         MultiArray<2, UInt8> labels(Shape2(num_samples, 1));
         for (int k = 0; k < labels.size(0); ++k)
@@ -150,6 +142,19 @@ int main(int argc, char ** argv)
             std::string fname("image#" + image_idx + "_level#" + level_idx);
             VolumeExportInfo Export_info(fname.c_str(),".tif");
             exportVolume(labelArray[j], Export_info);
+        }
+
+        // save probability maps
+        if ( i == 0 ) //(rf_cascade.size()-1) )
+        {
+            std::string level_idx = static_cast<std::ostringstream*>( &(std::ostringstream() << i) )->str();
+            for (int j=0; j<num_images; ++j)
+            {
+                std::string image_idx = static_cast<std::ostringstream*>( &(std::ostringstream() << j) )->str();
+                std::string fname("level#" + level_idx + "_image#" + image_idx + "_probabilities");
+                VolumeExportInfo Export_info(fname.c_str(), ".tif");
+                exportVolume(probArray[j], Export_info);
+            }
         }
 
     }
