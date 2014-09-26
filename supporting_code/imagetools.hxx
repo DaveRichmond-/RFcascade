@@ -374,7 +374,7 @@ public:
             cumProbs.init(0);
             float cumW = 0;
 
-            // loop over trees (actually over forests)
+            // loop over trees
             for (int t = 0; t < num_trees; ++t)
             {
                 //
