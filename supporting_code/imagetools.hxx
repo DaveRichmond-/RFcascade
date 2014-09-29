@@ -24,6 +24,57 @@ class imagetools
 {
 public:
 
+    template <class T1>
+    static void rigidMBS(const MultiArray<3, T1> & probStack, MultiArray<3, T1> & smoothProbStack, int sampling = 1)
+    {
+        // hard-code two parameters for now
+        mwArray numFits;
+        numFits = mwArray(100);
+
+        mwArray numCentroidsUsed;
+        numCentroidsUsed = mwArray(21);
+
+        // convert multiArray to array, and then to mwArray for Matlab
+        const int num_px = probStack.size(0)*probStack.size(1)*probStack.size(2);
+
+        float* probArray = new float[num_px];
+
+        int count = 0;
+        for (int k = 0; k < probStack.size(2); ++k){
+            for (int j = 0; j < probStack.size(1); ++j){
+                for (int i = 0; i < probStack.size(0); ++i){
+                    probArray[count] = probStack(i,j,k);
+                    count += 1;
+                }
+            }
+        }
+
+        mwArray mwProbs(1, num_px, mxSINGLE_CLASS);
+        mwProbs.SetData(probArray, num_px);
+        delete [] probArray;
+
+        // call MBS routine
+        mwArray mwSmoothProbs(1, num_px, mxSINGLE_CLASS);
+        modelBasedSmoothing_wARGS(1, mwSmoothProbs, mwProbs, numCentroidsUsed, numFits);
+
+        // get data out of mwArray
+        float* smoothProbArray = new float[num_px];
+        mwSmoothProbs.GetData(smoothProbArray, num_px);
+
+        // transfer back to MultiArray
+        smoothProbStack.reshape(Shape3(probStack.size(0), probStack.size(1), probStack.size(2)));
+        count = 0;
+        for (int k = 0; k < probStack.size(2); ++k){
+            for (int j = 0; j < probStack.size(1); ++j){
+                for (int i = 0; i < probStack.size(0); ++i){
+                    smoothProbStack(j,i,k) = smoothProbArray[count];    // transpose b/c row-major order!
+                    count += 1;
+                }
+            }
+        }
+        delete [] smoothProbArray;
+    }
+
 	static void getTrainingDataPaths(const char* basePath, ArrayVector<const char*> imagePaths, ArrayVector<const char*> labelPaths)
 	{
 		//
