@@ -17,14 +17,63 @@
 #include <vigra/hdf5impex.hxx>
 
 #include <vigra/convolution.hxx>
-#include <imagetools.hxx>
 
+#include <imagetools.hxx>
+#include <smoothingtools.hxx>
 
 
 using namespace vigra;
 
 int run_main(int argc, const char **argv)
 {
+    // USER DEFINED PARAMETERS !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
+
+    std::string imgPath("/Users/richmond/Data/Somites/Processed/First set/registered/Features/simpleFeatures_wXY/Train");
+    std::string labelPath("/Users/richmond/Data/Somites/Processed/First set/registered/Labels/Train");
+    std::string outputPath("/Users/richmond/Analysis/SomiteTracker/RFs/real_data/on_registered_data/Cascade_w_Smoothing/MBS_rigid/test");
+
+    // some user defined parameters
+    double smoothing_scale = 3.0;
+    int numFits = 1;
+    int numCentroidsUsed = 21;
+
+    // USER DEFINED PARAMETERS !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
+
+    typedef float ImageType;
+    typedef UInt8 LabelType;
+
+    // import images --------------------->
+    int num_images = atoi(argv[4]);
+    int num_levels = atoi(argv[5]);
+    int sampling = atoi(argv[6]);
+
+    ArrayVector< MultiArray<2, float> > rfFeaturesArray;
+    ArrayVector< MultiArray<2, UInt8> > rfLabelsArray;
+    Shape2 xy_dim(0,0);
+
+    imagetools::getArrayOfFeaturesAndLabels(imgPath, labelPath, rfFeaturesArray, rfLabelsArray, xy_dim, num_levels, num_images, sampling);
+
+    std::cout << "\n" << "image import succeeded!" << std::endl;
+
+    // set up rf --------------------------------->
+
+    ArrayVector< RandomForest<float> > rf_cascade;
+
+    int num_classes = atoi(argv[7]);
+    int tree_count = atoi(argv[8]);
+
+    ArrayVector<int> feature_mix(3);
+    feature_mix[0] = atoi(argv[9]);
+    feature_mix[1] = atoi(argv[10]);
+    feature_mix[2] = atoi(argv[11]);
+
+    int max_offset = atoi(argv[12]) / sampling;        // account for resampling!
+    std::cout << "\n" << "scaled max offset = " << max_offset << std::endl;
+
+    // set early stopping depth
+    int depth = atoi(argv[13]);
+    int min_split_node_size = atoi(argv[14]);
+    EarlyStopDepthAndNodeSize stopping(depth, min_split_node_size);
 
     // initialize matlab compiler runtime --------------------------------->
 
@@ -41,57 +90,13 @@ int run_main(int argc, const char **argv)
     {
         std::cerr << "Could not initialize the library properly."
                   << std::endl;
-    return -1;
+        return -1;
     }
 
     std::cout << "initialization succeeded!" << std::endl;
 
     try
     {
-        // import images  --------------------------------->
-
-        typedef float ImageType;
-        typedef UInt8 LabelType;
-
-        // some user defined parameters
-        double smoothing_scale = 3.0;
-
-        // import images --------------------->
-        std::string imgPath(argv[1]);
-        std::string labelPath(argv[2]);
-
-        int num_images = atoi(argv[3]);
-        int num_levels = atoi(argv[4]);
-        int sampling = atoi(argv[5]);
-
-        ArrayVector< MultiArray<2, float> > rfFeaturesArray;
-        ArrayVector< MultiArray<2, UInt8> > rfLabelsArray;
-        Shape2 xy_dim(0,0);
-
-        imagetools::getArrayOfFeaturesAndLabels(imgPath, labelPath, rfFeaturesArray, rfLabelsArray, xy_dim, num_levels, num_images, sampling);
-
-        std::cout << "\n" << "image import succeeded!" << std::endl;
-
-        // set up rf --------------------------------->
-
-        ArrayVector< RandomForest<float> > rf_cascade;
-
-        int num_classes = atoi(argv[6]);
-        int tree_count = atoi(argv[7]);
-
-        ArrayVector<int> feature_mix(3);
-        feature_mix[0] = atoi(argv[8]);
-        feature_mix[1] = atoi(argv[9]);
-        feature_mix[2] = atoi(argv[10]);
-
-        int max_offset = atoi(argv[11]) / sampling;        // account for resampling!
-        std::cout << "\n" << "scaled max offset = " << max_offset << std::endl;
-
-        // set early stopping depth
-        int depth = atoi(argv[12]);
-        int min_split_node_size = atoi(argv[13]);
-        EarlyStopDepthAndNodeSize stopping(depth, min_split_node_size);
-
 
         // learn cascade --------------------------------->
 
@@ -102,8 +107,6 @@ int run_main(int argc, const char **argv)
         // run cascade
         for (int i=0; i<num_levels; ++i)
         {
-            // tic
-            start = std::clock();
 
             // some useful constants
             int num_samples = rfFeaturesArray[i].size(0);
@@ -148,8 +151,9 @@ int run_main(int argc, const char **argv)
                 ArrayVector<MultiArray<3, ImageType> > smoothProbArray(num_images_per_level);
                 for (int k=0; k<num_images_per_level; ++k){
                     smoothProbArray[k].reshape(Shape3(xy_dim[0], xy_dim[1], num_classes));
-                    imagetools::rigidMBS<ImageType>(probArray[k], smoothProbArray[k]);
+                    smoothingtools::rigidMBS<ImageType>(probArray[k], smoothProbArray[k], numFits, numCentroidsUsed, sampling);
                 }
+
                 // Gaussian Smoothing (old)
                 /*
                 ArrayVector<MultiArray<3, ImageType> > smoothProbArray(num_images_per_level);
@@ -161,7 +165,6 @@ int run_main(int argc, const char **argv)
                     }
                 }
                 */
-
                 imagetools::imagesToProbs<ImageType>(smoothProbArray, smoothProbs);
 
                 // update train_features with current probability map, and smoothed probability map
@@ -169,9 +172,19 @@ int run_main(int argc, const char **argv)
                 rfFeatures_wProbs.subarray(Shape2(0,num_filt_features+num_classes), Shape2(num_samples,num_filt_features+2*num_classes)) = smoothProbs;
 
                 // save probability maps
-                std::cout << boost::filesystem::current_path() << std::endl;
-                VolumeExportInfo Export_info("test_smoothProbArray[0]", ".tif");
-                exportVolume(smoothProbArray[0], Export_info);
+                if ( 1 ) //(rf_cascade.size()-1) )
+                {
+                    for (int img_indx=0; img_indx<num_images_per_level; ++img_indx)
+                    {
+                        std::string fname(outputPath + "/" + "level#" + std::to_string(j) + "_image#" + std::to_string(img_indx) + "_probs");
+                        VolumeExportInfo Export_info(fname.c_str(), ".tif");
+                        exportVolume(probArray[img_indx], Export_info);
+
+                        std::string fname2(outputPath + "/" + "level#" + std::to_string(j) + "_image#" + std::to_string(img_indx) + "_smoothProbs");
+                        VolumeExportInfo Export_info2(fname2.c_str(), ".tif");
+                        exportVolume(smoothProbArray[img_indx], Export_info2);
+                    }
+                }
             }
 
             // create space for next forest in the cascade
@@ -190,18 +203,19 @@ int run_main(int argc, const char **argv)
 
             std::cout << "training scale factor: " << rf_cascade[i].options().train_scale_ << std::endl;
 
+            // tic
+            start = std::clock();
             // learn ith forest
             if (i==0)
                 rf_cascade[i].learn(rfFeaturesArray[i], rfLabelsArray[i], rf_default(), rf_default(), stopping);
             else
                 rf_cascade[i].learn(rfFeatures_wProbs, rfLabelsArray[i], rf_default(), rf_default(), stopping);
-
             // toc
             duration = ((std::clock() - start) / (float) CLOCKS_PER_SEC) / 60.0;
             std::cout << "time to learn level " << i << " [min]: " << duration << std::endl;
 
             // save RF cascade after each level (to be safe)
-            HDF5File hdf5_file("rf_cascade", HDF5File::New);
+            HDF5File hdf5_file(outputPath + "/" + "rf_cascade", HDF5File::New);
             rf_export_HDF5(rf_cascade, hdf5_file);
 
         }
