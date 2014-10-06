@@ -8,6 +8,7 @@
 #include <math.h>
 #include <ctime>
 
+#include "libmodelBasedSmoothing2.h"
 
 using namespace vigra;
 
