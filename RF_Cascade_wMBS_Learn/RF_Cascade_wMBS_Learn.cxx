@@ -1,5 +1,4 @@
 #include <iostream>
-#include "libmodelBasedSmoothing2.h"
 
 #include <array>
 #include <chrono>
