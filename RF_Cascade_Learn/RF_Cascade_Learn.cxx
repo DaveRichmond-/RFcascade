@@ -125,6 +125,13 @@ int main(int argc, char ** argv)
             }
             imagetools::imagesToProbs<ImageType>(smoothProbArray, smoothProbs);
 
+            // use GT instead of smoothed maps.  this is a test of the cascade.
+            /*
+            smoothProbs.init(0);
+            for (int s = 0; s < num_samples; ++s)
+                smoothProbs(s, rfLabelsArray[i](s,0)) = 1;
+            */
+
             // update train_features with current probability map, and smoothed probability map
             rfFeatures_wProbs.subarray(Shape2(0,num_filt_features), Shape2(num_samples,num_filt_features+num_classes)) = probs;
             rfFeatures_wProbs.subarray(Shape2(0,num_filt_features+num_classes), Shape2(num_samples,num_filt_features+2*num_classes)) = smoothProbs;

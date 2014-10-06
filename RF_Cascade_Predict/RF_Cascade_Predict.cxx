@@ -121,6 +121,15 @@ int main(int argc, char ** argv)
         }
         imagetools::imagesToProbs<ImageType>(smoothProbArray, smoothProbs);
 
+        // use GT instead of smoothed maps.  this is a test of the cascade.
+        /*
+        smoothProbs.init(0);
+        for (int s = 0; s < num_samples; ++s)
+            smoothProbs(s, rfLabelsArray[0](s,0)) = 1;
+        ArrayVector<MultiArray<3, ImageType> > smoothProbArray(num_images);
+        imagetools::probsToImages<ImageType>(smoothProbs, smoothProbArray, xy_dim);
+        */
+
         // update train_features with current probability map, and smoothed probability map
         rfFeatures_wProbs.subarray(Shape2(0,num_filt_features), Shape2(num_samples,num_filt_features+num_classes)) = probs;
         rfFeatures_wProbs.subarray(Shape2(0,num_filt_features+num_classes), Shape2(num_samples,num_filt_features+2*num_classes)) = smoothProbs;
@@ -144,16 +153,16 @@ int main(int argc, char ** argv)
             exportVolume(labelArray[j], Export_info);
         }
 
-        // save probability maps
-        if ( i == 0 ) //(rf_cascade.size()-1) )
+        // save smooth probability maps
+        if ( 0 ) //(rf_cascade.size()-1) )
         {
             std::string level_idx = static_cast<std::ostringstream*>( &(std::ostringstream() << i) )->str();
             for (int j=0; j<num_images; ++j)
             {
                 std::string image_idx = static_cast<std::ostringstream*>( &(std::ostringstream() << j) )->str();
-                std::string fname("level#" + level_idx + "_image#" + image_idx + "_probabilities");
+                std::string fname("level#" + level_idx + "_image#" + image_idx + "_smoothProbabilities");
                 VolumeExportInfo Export_info(fname.c_str(), ".tif");
-                exportVolume(probArray[j], Export_info);
+                exportVolume(smoothProbArray[j], Export_info);
             }
         }
 
