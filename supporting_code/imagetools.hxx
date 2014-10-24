@@ -1,4 +1,6 @@
 #include <iostream>
+#include <string>
+#include <fstream>
 #include <array>
 #include <chrono>
 #include <algorithm>
@@ -126,12 +128,12 @@ public:
         // calc some useful constants
         int num_samples = image.size(0)*image.size(1);
         int num_classes = image.size(2);
-        int count = 0;
 
         // all samples are used
         probs.reshape(Shape2(num_samples, num_classes));
 
         //
+        int count = 0;
         for (int j = 0; j<image.size(1); ++j) {
             for (int i = 0; i<image.size(0); ++i) {
                 for (int k = 0; k<num_classes; ++k) {
@@ -157,8 +159,10 @@ public:
         probs.reshape(Shape2(num_samples, num_classes));
 
         for (int imgIdx = 0; imgIdx < num_images; imgIdx++) {
-            MultiArray<2, T1> probsPerImage = probs.subarray(Shape2(imgIdx*num_samples_per_image, 0), Shape2((imgIdx + 1)*num_samples_per_image, num_classes));
+            MultiArray<2, T1> probsPerImage;
             imageToProbs<T1>(imageArray[imgIdx], probsPerImage);
+
+            probs.subarray(Shape2(imgIdx*num_samples_per_image, 0), Shape2((imgIdx + 1)*num_samples_per_image, num_classes)) = probsPerImage;
         }
 
     }
@@ -199,6 +203,92 @@ public:
 
         return diceScore;
 
+    }
+
+    template <class T2>
+    static void diceOnFolder(std::string gtPath, std::string resultsPath, int num_levels = 1, int num_images = 0, int num_classes = 22)
+    {
+
+        ArrayVector<std::string> allGtNames = imagetools::getAllFilenames(gtPath);
+        ArrayVector<std::string> allResultsNames = imagetools::getAllFilenames(resultsPath);
+
+        if (num_images)
+        {
+            allGtNames.resize(num_images);
+            allResultsNames.resize(num_images*num_levels);
+        } else
+            num_images = allGtNames.size();
+
+        MultiArray<3, float> diceArray(Shape3(num_classes, num_levels, num_images));
+
+        // load gt image, and corresponding set of results images from cascade.  run dice() on each pair.
+        for (int imgIdx = 0; imgIdx < num_images; imgIdx++)
+        {
+            MultiArray<2, T2> gtLabelImg;
+            fs::path name(allGtNames[imgIdx]);
+            fs::path path(gtPath);
+            fs::path full_path = path / name;                           // OS specific?
+            importImage(full_path.string(), gtLabelImg);
+
+            for (int levelIdx = 0; levelIdx < num_levels; levelIdx++)
+            {
+                int cascIdx = imgIdx*num_levels + levelIdx;
+
+                MultiArray<2, T2> resultsLabelImg;
+                fs::path name(allResultsNames[cascIdx]);
+                fs::path path(resultsPath);
+                fs::path full_path = path / name;                           // OS specific?
+                importImage(full_path.string(), resultsLabelImg);
+
+                ArrayVector<float> temp_dice = dice<T2>(gtLabelImg, resultsLabelImg, num_classes);
+                for (int classIdx = 0; classIdx < temp_dice.size(); ++classIdx)
+                    diceArray(classIdx, levelIdx, imgIdx) = temp_dice[classIdx];
+            }
+
+        }
+        // write diceArray to csv file
+        std::ofstream myfile;
+        std::string fname;
+        fname = resultsPath + "/diceScores.txt";
+        myfile.open(fname);
+        // first write column headers
+        myfile << "image" << "," << "level" << "," << "class" << "," << "diceScore" << std::endl;
+        // now write data
+        for (int k=0; k<diceArray.size(2); k++)
+        {
+            for (int j=0; j<diceArray.size(1); j++)
+            {
+                for (int i=0; i<diceArray.size(0); i++)
+                {
+                    myfile << k << "," << j << "," << i << "," << diceArray(i,j,k) << std::endl;
+                }
+            }
+        }
+        myfile.close();
+
+        /*
+        for (int j=0; j<diceArray.size(1); j++)
+        {
+            for (int i=0; i<diceArray.size(0); i++)
+            {
+                myfile << "level" << j << "_" << "class" << i << ",";
+            }
+        }
+        myfile << std::endl;
+        // now write data
+        for (int k=0; k<diceArray.size(2); k++)
+        {
+            for (int j=0; j<diceArray.size(1); j++)
+            {
+                for (int i=0; i<diceArray.size(0); i++)
+                {
+                    myfile << diceArray(i,j,k) << ",";
+                }
+            }
+            myfile << std::endl;
+        }
+        myfile.close();
+        */
     }
 
 //
@@ -350,6 +440,61 @@ public:
 		}
 	}
 
+    static void getArrayOfRawImages(std::string imgPath,
+                                    ArrayVector< MultiArray<2, float> > & rfRawImagesArray,
+                                    Shape2 & xy_dim,
+                                    int num_levels = 1,
+                                    int num_images = 0)
+    {
+        // get all names:
+        ArrayVector<std::string> allImageNames = imagetools::getAllFilenames(imgPath);
+
+        if (num_images)
+        {
+            allImageNames.resize(num_images);
+        }
+        int numNames = allImageNames.size();
+        int chunkSize = numNames / num_levels;
+
+        //
+        rfRawImagesArray.resize(num_levels);
+
+        // load a chunk of them and put into array:
+        for (int chunkIdx = 0; chunkIdx < num_levels; chunkIdx++)
+        {
+            int fromIdx = chunkIdx*chunkSize;
+            int toIdx = fromIdx+chunkSize; // toIdx is not included!
+            ArrayVector< MultiArray<3, float> > imageArray(toIdx - fromIdx);
+            for (int idx = fromIdx; idx < toIdx; idx++)
+            {
+                if (idx >= allImageNames.size()) break;
+                MultiArray<2, float> image2;
+                fs::path name(allImageNames[idx]);
+                fs::path path(imgPath);
+                fs::path full_path = path / name;                           // OS specific?
+                importImage(full_path.string(), image2);
+                MultiArray<3, float> image3;
+                image3.reshape(Shape3(image2.size(0),image2.size(1),1));
+                image3.bindOuter(0) = image2;
+                imageArray[idx - fromIdx] = image3;
+            }
+
+            MultiArray<2, float> rfRawImages;
+            imagetools::imagesToProbs<float>(imageArray, rfRawImages);
+
+            // set xy_dim, accounting for resampling
+            if (chunkIdx == 0)
+            {
+                xy_dim[0] = imageArray[0].size(0);
+                xy_dim[1] = imageArray[0].size(1);
+            }
+
+            rfRawImagesArray[chunkIdx] = rfRawImages;
+        }
+    }
+
+    // weightedProbMap somehow got broken when making diceOnFolder.  comment out for now...
+    /*
     template <class T1, class T2>
     static void weightedProbMap(const MultiArray<2, T1> & rfFeatures, const MultiArray<2, T2> & rfLabels, RandomForest<float> rf, Shape2 xy_dim, int lambda, int mode, MultiArray<2, float> & predProbs, MultiArray<2, T2> & predLabels)
     {
@@ -438,7 +583,7 @@ public:
             rf.ext_param_.to_classlabel(linalg::argMax(cumProbs), predLabels[i]);
         }
     }
-
+*/
 
 /*
     template <class T1, class T2>
