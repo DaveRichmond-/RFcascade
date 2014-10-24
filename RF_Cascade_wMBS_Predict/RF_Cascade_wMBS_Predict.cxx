@@ -1,5 +1,4 @@
 #include <iostream>
-#include "libmodelBasedSmoothing2.h"
 
 #include <array>
 #include <chrono>
@@ -29,41 +28,63 @@ int run_main(int argc, const char **argv)
 {
     // USER DEFINED PARAMETERS !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
 
-    std::string imgPath("/Users/richmond/Data/Somites/Processed/First set/registered/Features/simpleFeatures_wXY/Test");
-    std::string labelPath("/Users/richmond/Data/Somites/Processed/First set/registered/Labels/Test");
-    std::string outputPath("/Users/richmond/Analysis/SomiteTracker/RFs/real_data/on_registered_data/Cascade_w_Smoothing/MBS_rigid/2Levels_6ImagesPerLevel_20trees/1_0_0");
+    std::string baseInputPath("/Users/richmond/Data/Somites/Processed/First set/registered");
+    std::string baseOutputPath("/Users/richmond/Analysis/SomiteTracker/RFs/real_data/on_registered_data/Cascade_w_Smoothing");
+
+    //
+    std::string rawPath;
+    rawPath = baseInputPath + argv[1];
+    std::string featPath;
+    featPath = baseInputPath + argv[2];
+    std::string labelPath;
+    labelPath = baseInputPath + argv[3];
+    std::string rfPath;
+    rfPath = baseOutputPath + argv[4];
+    std::string outputPath;
+    outputPath = rfPath;
+
+    std::string rfName;
+    rfName = rfPath + "/" + argv[5];
 
     // some user defined parameters
     double smoothing_scale = 3.0;
-    int numFits = 100;
+    int numGDsteps = 50;
+    float lambda = 2;
+    int numFits = 1;
     int numCentroidsUsed = 21;
 
-    // USER DEFINED PARAMETERS !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
+    // END USER DEFINED PARAMETERS !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
 
     typedef float ImageType;
     typedef UInt8 LabelType;
 
     // import images --------------------->
 
+    int num_images = atoi(argv[6]);
+    int sampling = atoi(argv[7]);
+
     ArrayVector< MultiArray<2, float> > rfFeaturesArray;
     ArrayVector< MultiArray<2, UInt8> > rfLabelsArray;
     Shape2 xy_dim(0,0);
 
-    int num_images = atoi(argv[4]);
-    int sampling = atoi(argv[5]);
-
-    imagetools::getArrayOfFeaturesAndLabels(imgPath, labelPath, rfFeaturesArray, rfLabelsArray, xy_dim, 1, num_images, sampling);
+    imagetools::getArrayOfFeaturesAndLabels(featPath, labelPath, rfFeaturesArray, rfLabelsArray, xy_dim, 1, num_images, sampling);
 
     int num_samples = rfFeaturesArray[0].size(0);
     num_images = num_samples / (xy_dim[0]*xy_dim[1]);
     int num_filt_features = rfFeaturesArray[0].size(1);
 
+    // re-use above strategy to get grayscale images.  need some dummy variables.
+    ArrayVector< MultiArray<2, ImageType> > rfRawImageArray;
+    Shape2 raw_dim(0,0);
+
+    imagetools::getArrayOfRawImages(rawPath, rfRawImageArray, raw_dim, 1, num_images);
+
+    std::cout << "\n" << "image import succeeded!" << std::endl;
+
     std::cout << "\n" << "num test images: " << num_images << std::endl;
     std::cout << "num test samples: " << num_samples << std::endl;
 
     // Load RF --------------------------------->
-
-    std::string rfName(argv[6]);
 
     std::cout << "rf loaded from: " << boost::filesystem::current_path() << std::endl;
 
@@ -114,6 +135,12 @@ int run_main(int argc, const char **argv)
 
             std::cout << "\n" << "level: " << i << std::endl;
 
+            std::cout << "\n" << "check forest properties at each level..." << std::endl;
+            std::cout << "tree count: " << rf_cascade[i].tree_count() << std::endl;
+            std::cout << "class count: " << rf_cascade[i].class_count() << std::endl;
+            std::cout << "feature count: " << rf_cascade[i].feature_count() << std::endl;
+
+
             // set image shape
             rf_cascade[i].set_options().image_shape(xy_dim);
 
@@ -146,13 +173,21 @@ int run_main(int argc, const char **argv)
             ArrayVector<MultiArray<3, ImageType> > probArray(num_images);
             imagetools::probsToImages<ImageType>(probs, probArray, xy_dim);
 
+            // convert raw images to array of stacks
+            ArrayVector<MultiArray<3, ImageType> > rawImageArray(num_images);
+            imagetools::probsToImages<ImageType>(rfRawImageArray[0], rawImageArray, raw_dim);
+
             // tic
             start = std::clock();
             // smooth the new probability maps
             ArrayVector<MultiArray<3, ImageType> > smoothProbArray(num_images);
             for (int k=0; k<num_images; ++k){
                 smoothProbArray[k].reshape(Shape3(xy_dim[0], xy_dim[1], num_classes));
-                smoothingtools::rigidMBS<ImageType>(probArray[k], smoothProbArray[k], numFits, numCentroidsUsed, sampling);
+//                smoothingtools::rigidMBS<ImageType>(probArray[k], smoothProbArray[k], numFits, numCentroidsUsed, sampling);
+
+                // FOR NOW, DON'T USE SMOOTH PROBS
+//                smoothingtools::AAM_MBS<ImageType>(probArray[k], rawImageArray[k], smoothProbArray[k], sampling, numGDsteps, lambda);
+                smoothProbArray[k].init(0.0);
             }
             // toc
             duration = ((std::clock() - start) / (float) CLOCKS_PER_SEC) / 60.0;
@@ -183,8 +218,13 @@ int run_main(int argc, const char **argv)
                 rf_cascade[i].ext_param_.to_classlabel(linalg::argMax(probs.subarray(Shape2(k,0), Shape2(k+1,num_classes))), labels[k]);
             }
 
+            // partition labels into array of label images
             ArrayVector<MultiArray<3, LabelType> > labelArray(num_images);
             imagetools::probsToImages<LabelType>(labels, labelArray, xy_dim);
+
+            // repeat for gt labels
+//            ArrayVector<MultiArray<3, LabelType> > gtLabelArray(num_images);
+//            imagetools::probsToImages<LabelType>(rfLabelsArray[0], gtLabelArray, xy_dim);
 
             std::string level_idx = std::to_string(i);
             for (int j=0; j<num_images; ++j)
