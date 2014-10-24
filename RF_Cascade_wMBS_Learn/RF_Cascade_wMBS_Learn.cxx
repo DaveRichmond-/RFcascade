@@ -27,12 +27,29 @@ int run_main(int argc, const char **argv)
 {
     // USER DEFINED PARAMETERS !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
 
-    std::string imgPath("/Users/richmond/Data/Somites/Processed/First set/registered/Features/simpleFeatures_wXY/Train");
-    std::string labelPath("/Users/richmond/Data/Somites/Processed/First set/registered/Labels/Train");
-    std::string outputPath("/Users/richmond/Analysis/SomiteTracker/RFs/real_data/on_registered_data/Cascade_w_Smoothing/MBS_rigid/test");
+    std::string baseInputPath("/Users/richmond/Data/Somites/Processed/First set/registered");
+    std::string baseOutputPath("/Users/richmond/Analysis/SomiteTracker/RFs/real_data/on_registered_data/Cascade_w_Smoothing");
+
+    std::string rawPath;
+    rawPath = baseInputPath + argv[1];
+    std::string featPath;
+    featPath = baseInputPath + argv[2];
+    std::string labelPath;
+    labelPath = baseInputPath + argv[3];
+    std::string rfPath;
+    rfPath = baseOutputPath + argv[4];
+
+    std::string outputPath;
+    outputPath = rfPath;
+    std::string rfName;
+    rfName = rfPath + "/" + "rf_cascade";
+
+    int loadRF_flag = atoi(argv[5]);
 
     // some user defined parameters
     double smoothing_scale = 3.0;
+    int numGDsteps = 50;
+    float lambda = 2;
     int numFits = 1;
     int numCentroidsUsed = 21;
 
@@ -42,15 +59,21 @@ int run_main(int argc, const char **argv)
     typedef UInt8 LabelType;
 
     // import images --------------------->
-    int num_images = atoi(argv[4]);
-    int num_levels = atoi(argv[5]);
-    int sampling = atoi(argv[6]);
+    int num_images = atoi(argv[6]);
+    int num_levels = atoi(argv[7]);
+    int sampling = atoi(argv[8]);
 
-    ArrayVector< MultiArray<2, float> > rfFeaturesArray;
-    ArrayVector< MultiArray<2, UInt8> > rfLabelsArray;
+    ArrayVector< MultiArray<2, ImageType> > rfFeaturesArray;
+    ArrayVector< MultiArray<2, LabelType> > rfLabelsArray;
     Shape2 xy_dim(0,0);
 
-    imagetools::getArrayOfFeaturesAndLabels(imgPath, labelPath, rfFeaturesArray, rfLabelsArray, xy_dim, num_levels, num_images, sampling);
+    imagetools::getArrayOfFeaturesAndLabels(featPath, labelPath, rfFeaturesArray, rfLabelsArray, xy_dim, num_levels, num_images, sampling);
+
+    // re-use above strategy to get grayscale images.  need some dummy variables.
+    ArrayVector< MultiArray<2, ImageType> > rfRawImageArray;
+    Shape2 raw_dim(0,0);
+
+    imagetools::getArrayOfRawImages(rawPath, rfRawImageArray, raw_dim, num_levels, num_images);
 
     std::cout << "\n" << "image import succeeded!" << std::endl;
 
@@ -58,21 +81,43 @@ int run_main(int argc, const char **argv)
 
     ArrayVector< RandomForest<float> > rf_cascade;
 
-    int num_classes = atoi(argv[7]);
-    int tree_count = atoi(argv[8]);
+    int num_classes = atoi(argv[9]);
+    int tree_count = atoi(argv[10]);
 
     ArrayVector<int> feature_mix(3);
-    feature_mix[0] = atoi(argv[9]);
-    feature_mix[1] = atoi(argv[10]);
-    feature_mix[2] = atoi(argv[11]);
+    feature_mix[0] = atoi(argv[11]);
+    feature_mix[1] = atoi(argv[12]);
+    feature_mix[2] = atoi(argv[13]);
 
-    int max_offset = atoi(argv[12]) / sampling;        // account for resampling!
+    int max_offset = atoi(argv[14]) / sampling;        // account for resampling!
     std::cout << "\n" << "scaled max offset = " << max_offset << std::endl;
 
     // set early stopping depth
-    int depth = atoi(argv[13]);
-    int min_split_node_size = atoi(argv[14]);
+    int depth = atoi(argv[15]);
+    int min_split_node_size = atoi(argv[16]);
     EarlyStopDepthAndNodeSize stopping(depth, min_split_node_size);
+
+    if (loadRF_flag)
+    {
+        std::cout << "rf loaded from: " << rfPath << std::endl;
+
+        HDF5File hdf5_file(rfName, HDF5File::Open);
+        rf_import_HDF5(rf_cascade, hdf5_file);
+
+        for (int i = 0; i<rf_cascade.size(); ++i)
+        {
+            rf_cascade[i].set_options().image_shape(xy_dim);
+        }
+
+        // check import parameters
+        std::cout << "\n" << "check rf parameters after load" << std::endl;
+        std::cout << "tree count: "  << rf_cascade[0].tree_count()  << std::endl;
+        std::cout << "class count: " << rf_cascade[0].class_count() << std::endl;
+    }
+    else
+    {
+        rf_cascade.resize(0);
+    }
 
     // initialize matlab compiler runtime --------------------------------->
 
@@ -104,7 +149,7 @@ int run_main(int argc, const char **argv)
         float duration;
 
         // run cascade
-        for (int i=0; i<num_levels; ++i)
+        for (int i=rf_cascade.size(); i<num_levels; ++i)
         {
 
             // some useful constants
@@ -143,14 +188,23 @@ int run_main(int argc, const char **argv)
                 else
                     rf_cascade[j].predictProbabilities(rfFeatures_wProbs, probs);
 
+                // convert to array of stacks
                 ArrayVector<MultiArray<3, ImageType> > probArray(num_images_per_level);
                 imagetools::probsToImages<ImageType>(probs, probArray, xy_dim);
+
+                // convert raw images to array of stacks
+                ArrayVector<MultiArray<3, ImageType> > rawImageArray(num_images_per_level);
+                imagetools::probsToImages<ImageType>(rfRawImageArray[i], rawImageArray, raw_dim);
 
                 // smooth the new probability maps
                 ArrayVector<MultiArray<3, ImageType> > smoothProbArray(num_images_per_level);
                 for (int k=0; k<num_images_per_level; ++k){
                     smoothProbArray[k].reshape(Shape3(xy_dim[0], xy_dim[1], num_classes));
-                    smoothingtools::rigidMBS<ImageType>(probArray[k], smoothProbArray[k], numFits, numCentroidsUsed, sampling);
+//                    smoothingtools::rigidMBS<ImageType>(probArray[k], smoothProbArray[k], numFits, numCentroidsUsed, sampling);
+
+                    // FOR NOW, DON'T USE SMOOTH PROBS
+//                    smoothingtools::AAM_MBS<ImageType>(probArray[k], rawImageArray[k], smoothProbArray[k], sampling, numGDsteps, lambda);
+                    smoothProbArray[k].init(0.0);
                 }
 
                 // Gaussian Smoothing (old)
@@ -195,7 +249,7 @@ int run_main(int argc, const char **argv)
                     .train_scale(sampling)
                     .image_shape(xy_dim)
                     .tree_count(tree_count)
-                    .use_stratification(RF_EQUAL)
+                    .use_stratification(RF_PROPORTIONAL)
                     .max_offset_x(max_offset)
                     .max_offset_y(max_offset)
                     .feature_mix(feature_mix);
@@ -214,7 +268,7 @@ int run_main(int argc, const char **argv)
             std::cout << "time to learn level " << i << " [min]: " << duration << std::endl;
 
             // save RF cascade after each level (to be safe)
-            HDF5File hdf5_file(outputPath + "/" + "rf_cascade", HDF5File::New);
+            HDF5File hdf5_file(rfName, HDF5File::New);
             rf_export_HDF5(rf_cascade, hdf5_file);
 
         }
