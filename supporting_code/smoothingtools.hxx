@@ -9,6 +9,7 @@
 #include <ctime>
 
 #include "libmodelBasedSmoothing2.h"
+//#include "libMBS_AAM_gS.h"
 
 using namespace vigra;
 
@@ -42,6 +43,47 @@ public:
         // call MBS routine
         mwArray mwSmoothProbs(1, probStack.size(), mxSINGLE_CLASS);
         modelBasedSmoothing_wARGS(1, mwSmoothProbs, mwProbs, mwShape, mwNumCentroidsUsed, mwNumFits, mwSampling);
+
+        // get data out of mwArray
+        smoothProbStack.reshape(Shape3(probStack.size(0), probStack.size(1), probStack.size(2)));
+        matlabToVigraArray(mwSmoothProbs, smoothProbStack);
+    }
+
+    template <class T1>
+    static void AAM_MBS(const MultiArray<3, T1> & probStack, const MultiArray<3, T1> & rawImage, MultiArray<3, T1> & smoothProbStack, int sampling = 1, int numGDsteps = 50, float lambda = 2)
+    {
+
+        // convert parameters to Matlab types
+        mwArray mwNumGDsteps;
+        mwNumGDsteps = mwArray(numGDsteps);
+
+        mwArray mwLambda;
+        mwLambda = mwArray(lambda);
+
+        mwArray mwProbStackShape(1, 3, mxDOUBLE_CLASS);
+        mwProbStackShape(1) = mwArray(static_cast<double>(probStack.size(0)));
+        mwProbStackShape(2) = mwArray(static_cast<double>(probStack.size(1)));
+        mwProbStackShape(3) = mwArray(static_cast<double>(probStack.size(2)));
+
+        mwArray mwRawImageShape(1, 2, mxDOUBLE_CLASS);
+        mwRawImageShape(1) = mwArray(static_cast<double>(rawImage.size(0)));
+        mwRawImageShape(2) = mwArray(static_cast<double>(rawImage.size(1)));
+
+        mwArray mwSampling;
+        mwSampling = mwArray(sampling);
+
+        // convert multiArray to mwArray for Matlab
+        mwArray mwProbs(1, probStack.size(), mxSINGLE_CLASS);
+        vigraToMatlabArray<T1>(probStack, mwProbs);
+
+        mwArray mwRawImage(1, rawImage.size(), mxSINGLE_CLASS);
+        vigraToMatlabArray<T1>(rawImage, mwRawImage);
+
+        // call MBS routine
+        mwArray mwSmoothProbs(1, probStack.size(), mxSINGLE_CLASS);
+//        MBS_AAM_gS_DEBUG(mwSampling);
+//        MBS_AAM_gS(1, mwSmoothProbs, mwSampling, mwNumGDsteps, mwLambda);
+        MBS_AAM_gS(1, mwSmoothProbs, mwRawImage, mwRawImageShape, mwProbs, mwProbStackShape, mwSampling, mwNumGDsteps, mwLambda);
 
         // get data out of mwArray
         smoothProbStack.reshape(Shape3(probStack.size(0), probStack.size(1), probStack.size(2)));
