@@ -97,6 +97,12 @@ int run_main(int argc, const char **argv)
     int min_split_node_size = atoi(argv[16]);
     EarlyStopDepthAndNodeSize stopping(depth, min_split_node_size);
 
+    // even more params...
+    int smooth_flag = atoi(argv[17]);
+    double sample_fraction = atof(argv[18]);
+
+    std::cout << "sample fraction is: " << sample_fraction << std::endl;
+
     if (loadRF_flag)
     {
         std::cout << "rf loaded from: " << rfPath << std::endl;
@@ -201,10 +207,10 @@ int run_main(int argc, const char **argv)
                 for (int k=0; k<num_images_per_level; ++k){
                     smoothProbArray[k].reshape(Shape3(xy_dim[0], xy_dim[1], num_classes));
 //                    smoothingtools::rigidMBS<ImageType>(probArray[k], smoothProbArray[k], numFits, numCentroidsUsed, sampling);
-
-                    // FOR NOW, DON'T USE SMOOTH PROBS
-//                    smoothingtools::AAM_MBS<ImageType>(probArray[k], rawImageArray[k], smoothProbArray[k], sampling, numGDsteps, lambda);
-                    smoothProbArray[k].init(0.0);
+                    if (smooth_flag)
+                        smoothingtools::AAM_MBS<ImageType>(probArray[k], rawImageArray[k], smoothProbArray[k], sampling, numGDsteps, lambda);
+                    else
+                        smoothProbArray[k].init(0.0);
                 }
 
                 // Gaussian Smoothing (old)
@@ -233,9 +239,12 @@ int run_main(int argc, const char **argv)
                         VolumeExportInfo Export_info(fname.c_str(), ".tif");
                         exportVolume(probArray[img_indx], Export_info);
 
-                        std::string fname2(outputPath + "/" + "level#" + std::to_string(j) + "_image#" + std::to_string(img_indx) + "_smoothProbs");
-                        VolumeExportInfo Export_info2(fname2.c_str(), ".tif");
-                        exportVolume(smoothProbArray[img_indx], Export_info2);
+                        if ( smooth_flag )
+                        {
+                            std::string fname2(outputPath + "/" + "level#" + std::to_string(j) + "_image#" + std::to_string(img_indx) + "_smoothProbs");
+                            VolumeExportInfo Export_info2(fname2.c_str(), ".tif");
+                            exportVolume(smoothProbArray[img_indx], Export_info2);
+                        }
                     }
                 }
             }
@@ -252,7 +261,8 @@ int run_main(int argc, const char **argv)
                     .use_stratification(RF_PROPORTIONAL)
                     .max_offset_x(max_offset)
                     .max_offset_y(max_offset)
-                    .feature_mix(feature_mix);
+                    .feature_mix(feature_mix)
+                    .samples_per_tree(sample_fraction);
 
             std::cout << "training scale factor: " << rf_cascade[i].options().train_scale_ << std::endl;
 

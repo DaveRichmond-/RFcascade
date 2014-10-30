@@ -63,6 +63,8 @@ int run_main(int argc, const char **argv)
     int num_images = atoi(argv[6]);
     int sampling = atoi(argv[7]);
 
+    int smooth_flag = atoi(argv[8]);
+
     ArrayVector< MultiArray<2, float> > rfFeaturesArray;
     ArrayVector< MultiArray<2, UInt8> > rfLabelsArray;
     Shape2 xy_dim(0,0);
@@ -185,9 +187,11 @@ int run_main(int argc, const char **argv)
                 smoothProbArray[k].reshape(Shape3(xy_dim[0], xy_dim[1], num_classes));
 //                smoothingtools::rigidMBS<ImageType>(probArray[k], smoothProbArray[k], numFits, numCentroidsUsed, sampling);
 
-                // FOR NOW, DON'T USE SMOOTH PROBS
-//                smoothingtools::AAM_MBS<ImageType>(probArray[k], rawImageArray[k], smoothProbArray[k], sampling, numGDsteps, lambda);
-                smoothProbArray[k].init(0.0);
+                if (smooth_flag)
+                    smoothingtools::AAM_MBS<ImageType>(probArray[k], rawImageArray[k], smoothProbArray[k], sampling, numGDsteps, lambda);
+                else
+                    smoothProbArray[k].init(0.0);
+
             }
             // toc
             duration = ((std::clock() - start) / (float) CLOCKS_PER_SEC) / 60.0;
@@ -244,9 +248,12 @@ int run_main(int argc, const char **argv)
                     VolumeExportInfo Export_info(fname.c_str(), ".tif");
                     exportVolume(probArray[img_indx], Export_info);
 
-                    std::string fname2(outputPath + "/" + "level#" + std::to_string(i) + "_image#" + std::to_string(img_indx) + "_smoothProbs");
-                    VolumeExportInfo Export_info2(fname2.c_str(), ".tif");
-                    exportVolume(smoothProbArray[img_indx], Export_info2);
+                    if ( smooth_flag )
+                    {
+                        std::string fname2(outputPath + "/" + "level#" + std::to_string(i) + "_image#" + std::to_string(img_indx) + "_smoothProbs");
+                        VolumeExportInfo Export_info2(fname2.c_str(), ".tif");
+                        exportVolume(smoothProbArray[img_indx], Export_info2);
+                    }
                 }
             }
         }
