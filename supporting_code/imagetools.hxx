@@ -1,3 +1,6 @@
+#ifndef IMAGETOOLS_HXX
+#define IMAGETOOLS_HXX
+
 #include <iostream>
 #include <string>
 #include <fstream>
@@ -747,3 +750,5 @@ public:
 */
 
 };
+
+#endif // IMAGETOOLS_HXX
