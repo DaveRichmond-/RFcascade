@@ -119,7 +119,7 @@ public:
         const double convergenceBound = 0.0000001;
         const double damping = 0.0;
         typename BeliefPropagation::Parameter parameter(maxNumberOfIterations, convergenceBound, damping);
-        bool normalization = false;
+        bool normalization = true;
         parameter.useNormalization_ = normalization;
         BeliefPropagation bp(gm, parameter);
 
