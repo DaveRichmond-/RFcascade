@@ -7,7 +7,7 @@ int main(int argc, const char **argv)
     typedef UInt8 LabelType;
 
     // directories
-    std::string gtPath("/Users/richmond/Data/Somites/Processed/First set/registered/Labels/Test");
+    std::string gtPath("/Users/richmond/Data/Somites/Processed/First set/registered/Labels/Test");                                         // NOTE - CHANGED TO TRAIN!!!!!!!!!!!!!!!!!!
     std::string resultsBasePath("/Users/richmond/Analysis/SomiteTracker/RFs/real_data/on_registered_data/Cascade_w_Smoothing");
 
     //
