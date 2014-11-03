@@ -256,6 +256,10 @@ public:
             double sum_Marginals = 0.0;
             for(int j = 0; j < allMarginals.size(1); ++j)
                 sum_Marginals += allMarginals(i,j);
+
+            std::cout<< "Variable " << i << " has the following sum of marginals: " << sum_Marginals << " ";
+            std::cout<<std::endl;
+
             for(int j = 0; j < allMarginals.size(1); ++j)
                 allMarginals(i,j) /= sum_Marginals;
         }

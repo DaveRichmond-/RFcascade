@@ -45,12 +45,51 @@ public:
         SpaceType space(numVariables, numLabels);
         Model gm(space);
 
+        // for numerical stability: make all pairwise and unary sum to 1. If any sums to (almost) 0, something is wrong in the first place.
+        // this is just a heuristic. the partition function might still be zero.
+
+        // normalization factors for unaries:
+        double eps = 1E-5;
+        double globalFactor=sqrt(numLabels);
+        MultiArray<1, T1> unaryFactorSums(numVariables);
+        for (IndexType v = 0; v < numVariables; ++v){
+            unaryFactorSums(v) = 0;
+            for (LabelType s = 0; s < numLabels; ++s){
+                unaryFactorSums(v) += unaryFactors(v,s);
+            }
+            if (unaryFactorSums(v)<eps) {
+                std::cout<< "Numerical instability alert: Variable " << v << ": unary factor sums to " << unaryFactorSums(v) << " ";
+                std::cout<<std::endl;
+            }
+            unaryFactorSums(v)/=sqrt(numLabels);
+         }
+
+        // normalization factors for pair-wise:
+        MultiArray<1, T1> pairwiseFactorSums(numVariables-1);
+        for (IndexType v = 0; v < numVariables-1; ++v){
+            pairwiseFactorSums(v)=0;
+            for (LabelType sL = 0; sL < numLabels; ++sL)
+                for (LabelType sR = 0; sR < numLabels; ++sR)
+                    pairwiseFactorSums(v) += pairwiseFactors(sL,sR,v);
+            if (pairwiseFactorSums(v)<eps) {
+                std::cout<< "Numerical instability alert: Variables " << v << " and " << v+1 << " : pairwise factor sums to " << pairwiseFactorSums(v) << " ";
+                std::cout<<std::endl;
+            }
+            pairwiseFactorSums(v)/=numLabels*sqrt(numLabels);
+        }
+
         // load unary factors into gm
         for (IndexType v = 0; v < numVariables; ++v){
             const LabelType shape[] = {numLabels};
             ExplicitFunction f(shape, shape+1);
-            for (LabelType s = 0; s < numLabels; ++s)
-                f(s) = unaryFactors(v,s);
+            for (LabelType s = 0; s < numLabels; ++s){
+                if (unaryFactorSums(v)<eps) {
+                    f(s)=1;
+                }
+                else {
+                    f(s) = unaryFactors(v,s)/unaryFactorSums(v);
+                }
+            }
             FunctionIdentifier fid = gm.addFunction(f);
             IndexType variableIndices[] = {v};
             gm.addFactor(fid, variableIndices, variableIndices + 1);
@@ -60,9 +99,15 @@ public:
         for (IndexType v = 0; v < numVariables-1; ++v){
             const LabelType shape[] = {numLabels, numLabels};
             ExplicitFunction f(shape, shape+2);
-            for (LabelType sL = 0; sL < numLabels; ++sL)
-                for (LabelType sR = 0; sR < numLabels; ++sR)
-                    f(sL,sR) = pairwiseFactors(sL,sR,v);
+            for (LabelType sL = 0; sL < numLabels; ++sL){
+                for (LabelType sR = 0; sR < numLabels; ++sR){
+                    if (pairwiseFactorSums(v)<eps) {
+                        f(sL,sR)=1;
+                    } else {
+                        f(sL,sR) = pairwiseFactors(sL,sR,v)/pairwiseFactorSums(v);
+                    }
+                }
+            }
             FunctionIdentifier fid = gm.addFunction(f);
             IndexType variableIndices[] = {v,v+1};
             gm.addFactor(fid, variableIndices, variableIndices + 2);
