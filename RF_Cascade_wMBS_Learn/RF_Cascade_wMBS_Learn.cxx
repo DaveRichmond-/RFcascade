@@ -49,7 +49,8 @@ int run_main(int argc, const char **argv)
     // some user defined parameters
     double smoothing_scale = 3.0;
     int numGDsteps = 50;
-    float lambda = 2;
+    float lambdaU = 2;
+    float lambdaPW = 2;
     int numFits = 1;
     int numCentroidsUsed = 21;
 
@@ -207,10 +208,17 @@ int run_main(int argc, const char **argv)
                 for (int k=0; k<num_images_per_level; ++k){
                     smoothProbArray[k].reshape(Shape3(xy_dim[0], xy_dim[1], num_classes));
 //                    smoothingtools::rigidMBS<ImageType>(probArray[k], smoothProbArray[k], numFits, numCentroidsUsed, sampling);
-                    if (smooth_flag)
-                        smoothingtools::AAM_MBS<ImageType>(probArray[k], rawImageArray[k], smoothProbArray[k], sampling, numGDsteps, lambda);
-                    else
+                    if ( smooth_flag == 0 )
                         smoothProbArray[k].init(0.0);
+                    else if ( smooth_flag  == 1 )
+                        smoothingtools::AAM_MBS<ImageType>(probArray[k], rawImageArray[k], smoothProbArray[k], sampling, numGDsteps, lambdaU);
+                    else if ( smooth_flag == 2 ){
+                        MultiArray<2, int> MAPLabels;     // for now, just throw away the MAPLabels
+                        smoothingtools::AAM_Inference<ImageType>(probArray[k], rawImageArray[k], smoothProbArray[k], MAPLabels, sampling, numGDsteps, lambdaU, lambdaPW);
+                    } else if ( smooth_flag == 3 ){
+                        MultiArray<2, int> MAPLabels;     // for now, just throw away the MAPLabels
+                        smoothingtools::AAM_Inference_2inits<ImageType>(probArray[k], rawImageArray[k], smoothProbArray[k], MAPLabels, sampling, numGDsteps, lambdaU, lambdaPW);
+                    }
                 }
 
                 // Gaussian Smoothing (old)
