@@ -26,7 +26,7 @@ public:
         typedef T1                                                                      ValueType;
         typedef size_t                                                                  IndexType;
         typedef size_t                                                                  LabelType;
-        typedef Multiplier                                                              OperationType;                  // Multiplier is key parameter for probabilistic inference
+        typedef Multiplier                                                              OperationType;
         typedef ExplicitFunction<ValueType, IndexType, LabelType>                       ExplicitFunction;
         typedef typename meta::TypeListGenerator<ExplicitFunction>::type                FunctionTypeList;
         typedef SimpleDiscreteSpace<IndexType, LabelType>                               SpaceType;
@@ -34,9 +34,8 @@ public:
         typedef GraphicalModel<ValueType, OperationType, FunctionTypeList, SpaceType>   Model;
         typedef typename Model::FunctionIdentifier                                      FunctionIdentifier;
 
-        typedef BeliefPropagationUpdateRules<Model, Integrator> UpdateRules;                                            // Integrator is key parameter for probabilistic inference
-        typedef MessagePassing<Model, Integrator, UpdateRules, MaxDistance> BeliefPropagation;                          // Integrator is key parameter for probabilistic inference
-
+        typedef BeliefPropagationUpdateRules<Model, Integrator> UpdateRules;
+        typedef MessagePassing<Model, Integrator, UpdateRules, MaxDistance> BeliefPropagation;
 
         //
         const IndexType numVariables = unaryFactors.size(0);
@@ -52,7 +51,7 @@ public:
             ExplicitFunction f(shape, shape+1);
             for (LabelType s = 0; s < numLabels; ++s)
                 f(s) = unaryFactors(v,s);
-            FunctionIdentifier fid = gm.addFunction(f);         // is it ok that each function has the same variable name (f)?  they should all get a different id, which is used for reference.  seems ok...
+            FunctionIdentifier fid = gm.addFunction(f);
             IndexType variableIndices[] = {v};
             gm.addFactor(fid, variableIndices, variableIndices + 1);
         }
@@ -63,7 +62,7 @@ public:
             ExplicitFunction f(shape, shape+2);
             for (LabelType sL = 0; sL < numLabels; ++sL)
                 for (LabelType sR = 0; sR < numLabels; ++sR)
-                    f(sL,sR) = pairwiseFactors(sL,sR,v);                       // check this with a dummy example!
+                    f(sL,sR) = pairwiseFactors(sL,sR,v);
             FunctionIdentifier fid = gm.addFunction(f);
             IndexType variableIndices[] = {v,v+1};
             gm.addFactor(fid, variableIndices, variableIndices + 2);
@@ -75,6 +74,8 @@ public:
         const double convergenceBound = 0.0000001;
         const double damping = 0.0;
         typename BeliefPropagation::Parameter parameter(maxNumberOfIterations, convergenceBound, damping);
+        bool normalization = false;
+        parameter.useNormalization_ = normalization;
         BeliefPropagation bp(gm, parameter);
 
         // optimize (approximately) with output
