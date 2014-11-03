@@ -39,7 +39,7 @@ public:
 
         // convert multiArray to mwArray for Matlab
         mwArray mwProbs(1, probStack.size(), mxSINGLE_CLASS);
-        vigraToMatlabArray<T1>(probStack, mwProbs);
+        vigraToMatlab_Array<T1>(probStack, mwProbs);
 
         // call MBS routine
         mwArray mwSmoothProbs(1, probStack.size(), mxSINGLE_CLASS);
@@ -62,44 +62,170 @@ public:
         mwLambda = mwArray(lambda);
 
         mwArray mwProbStackShape(1, 3, mxDOUBLE_CLASS);
-        mwProbStackShape(1) = mwArray(static_cast<double>(probStack.size(0)));
-        mwProbStackShape(2) = mwArray(static_cast<double>(probStack.size(1)));
+        mwProbStackShape(1) = mwArray(static_cast<double>(probStack.size(1)));
+        mwProbStackShape(2) = mwArray(static_cast<double>(probStack.size(0)));
         mwProbStackShape(3) = mwArray(static_cast<double>(probStack.size(2)));
 
         mwArray mwRawImageShape(1, 2, mxDOUBLE_CLASS);
-        mwRawImageShape(1) = mwArray(static_cast<double>(rawImage.size(0)));
-        mwRawImageShape(2) = mwArray(static_cast<double>(rawImage.size(1)));
+        mwRawImageShape(1) = mwArray(static_cast<double>(rawImage.size(1)));
+        mwRawImageShape(2) = mwArray(static_cast<double>(rawImage.size(0)));
 
         mwArray mwSampling;
         mwSampling = mwArray(sampling);
 
         // convert multiArray to mwArray for Matlab
         mwArray mwProbs(1, probStack.size(), mxSINGLE_CLASS);
-        vigraToMatlabArray<T1>(probStack, mwProbs);
+        vigraToMatlab_Array<T1>(probStack, mwProbs);
 
         mwArray mwRawImage(1, rawImage.size(), mxSINGLE_CLASS);
-        vigraToMatlabArray<T1>(rawImage, mwRawImage);
+        vigraToMatlab_Array<T1>(rawImage, mwRawImage);
 
         // call MBS routine
         mwArray mwSmoothProbs(1, probStack.size(), mxSINGLE_CLASS);
-//        MBS_AAM_gS_DEBUG(mwSampling);
-//        MBS_AAM_gS(1, mwSmoothProbs, mwSampling, mwNumGDsteps, mwLambda);
         MBS_AAM_gS(1, mwSmoothProbs, mwRawImage, mwRawImageShape, mwProbs, mwProbStackShape, mwSampling, mwNumGDsteps, mwLambda);
 
         // get data out of mwArray
         smoothProbStack.reshape(Shape3(probStack.size(0), probStack.size(1), probStack.size(2)));
-        matlabToVigraArray(mwSmoothProbs, smoothProbStack);
+        matlabToVigra_Array(mwSmoothProbs, smoothProbStack);
     }
 
-//    template <class T1>
-//    static void AAM_Inference(const MultiArray<3, T1> & probStack, const MultiArray<3, T1> & rawImage, MultiArray<3, T1> & smoothProbStack, int sampling = 1, int numGDsteps = 50, float lambda = 2)
-//    {
+    template <class T1>
+    static void AAM_Inference(const MultiArray<3, T1> & probStack, const MultiArray<3, T1> & rawImage, MultiArray<3, T1> & margProbStack, MultiArray<2, int> & MAPLabels, int sampling = 1, int numGDsteps = 50, float lambdaU = 4, float lambdaPW = 4)
+    {
 
-//        // copy from above...
+        // useful constants
+        int numFits = 9;                                                        // NOTE: THIS PARAMETERS IS ACTUALLY SET BY THE MATLAB FUNCTION.  FOR "GRID-SEARCH" NUMFITS = 9.  IN FUTURE, NUMFITS = 18 TO TAKE INTO ACCOUNT 2 TYPES OF INITIALIZATION
+        int num_classes = probStack.size(2);
 
+        // convert to Matlab types ------------------------------------------------------------------------------>
 
+        mwArray mwSampling;
+        mwSampling = mwArray(sampling);
 
-//    }
+        mwArray mwNumGDsteps;
+        mwNumGDsteps = mwArray(numGDsteps);
+
+        mwArray mwLambdaU;
+        mwLambdaU = mwArray(lambdaU);
+
+        mwArray mwLambdaPW;
+        mwLambdaPW = mwArray(lambdaPW);
+
+        mwArray mwProbStackShape(1, 3, mxDOUBLE_CLASS);
+        mwProbStackShape(1) = mwArray(static_cast<double>(probStack.size(1)));      // flip xy for Matlab
+        mwProbStackShape(2) = mwArray(static_cast<double>(probStack.size(0)));
+        mwProbStackShape(3) = mwArray(static_cast<double>(probStack.size(2)));
+
+        mwArray mwRawImageShape(1, 2, mxDOUBLE_CLASS);
+        mwRawImageShape(1) = mwArray(static_cast<double>(rawImage.size(1)));        // these are flipped for Matlab
+        mwRawImageShape(2) = mwArray(static_cast<double>(rawImage.size(0)));
+
+        // convert multiArray to mwArray for Matlab
+        mwArray mwProbs(1, probStack.size(), mxSINGLE_CLASS);
+        vigraToMatlab_Array<T1>(probStack, mwProbs);
+
+        mwArray mwRawImage(1, rawImage.size(), mxSINGLE_CLASS);
+        vigraToMatlab_Array<T1>(rawImage, mwRawImage);
+
+        // initialize arrays for output
+        mwArray mwUnaryFactors(1, (num_classes-1)*numFits, mxDOUBLE_CLASS);
+        mwArray mwPairwiseFactors(1, numFits*numFits*(num_classes-1), mxDOUBLE_CLASS);
+        mwArray mwFitMasks(1, probStack.size(0)*probStack.size(1)*(num_classes-1)*numFits, mxINT8_CLASS);
+
+        // call MBS routine ----------------------------------------------------------------------------------------------->
+
+        MBS_AAM_forINF(3, mwUnaryFactors, mwPairwiseFactors, mwFitMasks, mwRawImage, mwRawImageShape, mwProbs, mwProbStackShape, mwSampling, mwNumGDsteps, mwLambdaU, mwLambdaPW);
+
+        // convert from Matlab types ---------------------------------------------------------------------------->
+
+        // get data out of mwArrays
+        MultiArray<3, int> fitMasks(Shape3(probStack.size(0), probStack.size(1), (num_classes-1)*numFits));
+        matlabToVigra_Array<int>(mwFitMasks, fitMasks);
+
+        MultiArray<2, double> unaryFactors(Shape2(num_classes-1,numFits));
+        matlabToVigra_UnaryFactors(mwUnaryFactors, unaryFactors);
+
+        MultiArray<3, double> pairwiseFactors(Shape3(numFits, numFits, num_classes-1));
+        matlabToVigra_PairwiseFactors(mwPairwiseFactors, pairwiseFactors);
+
+        // calc marginal and MAP solutions, and return corresponding probability and label images ---------------------------------------------------------------------------->
+
+        margProbStack.reshape(probStack.shape());
+        probFromFits<double, T1>(unaryFactors, pairwiseFactors, fitMasks, margProbStack);
+
+        MAPLabels.reshape(Shape2(probStack.size(0), probStack.size(1)));
+        MAPFromFits<double>(unaryFactors, pairwiseFactors, fitMasks, MAPLabels);
+
+    }
+
+    template <class T1>
+    static void AAM_Inference_2inits(const MultiArray<3, T1> & probStack, const MultiArray<3, T1> & rawImage, MultiArray<3, T1> & margProbStack, MultiArray<2, int> & MAPLabels, int sampling = 1, int numGDsteps = 50, float lambdaU = 4, float lambdaPW = 4)
+    {
+
+        // useful constants
+        int numFits = 18;                                                        // NOTE: THIS PARAMETERS IS ACTUALLY SET BY THE MATLAB FUNCTION.  FOR "GRID-SEARCH" NUMFITS = 9.  IN FUTURE, NUMFITS = 18 TO TAKE INTO ACCOUNT 2 TYPES OF INITIALIZATION
+        int num_classes = probStack.size(2);
+
+        // convert to Matlab types ------------------------------------------------------------------------------>
+
+        mwArray mwSampling;
+        mwSampling = mwArray(sampling);
+
+        mwArray mwNumGDsteps;
+        mwNumGDsteps = mwArray(numGDsteps);
+
+        mwArray mwLambdaU;
+        mwLambdaU = mwArray(lambdaU);
+
+        mwArray mwLambdaPW;
+        mwLambdaPW = mwArray(lambdaPW);
+
+        mwArray mwProbStackShape(1, 3, mxDOUBLE_CLASS);
+        mwProbStackShape(1) = mwArray(static_cast<double>(probStack.size(1)));      // flip xy for Matlab
+        mwProbStackShape(2) = mwArray(static_cast<double>(probStack.size(0)));
+        mwProbStackShape(3) = mwArray(static_cast<double>(probStack.size(2)));
+
+        mwArray mwRawImageShape(1, 2, mxDOUBLE_CLASS);
+        mwRawImageShape(1) = mwArray(static_cast<double>(rawImage.size(1)));        // these are flipped for Matlab
+        mwRawImageShape(2) = mwArray(static_cast<double>(rawImage.size(0)));
+
+        // convert multiArray to mwArray for Matlab
+        mwArray mwProbs(1, probStack.size(), mxSINGLE_CLASS);
+        vigraToMatlab_Array<T1>(probStack, mwProbs);
+
+        mwArray mwRawImage(1, rawImage.size(), mxSINGLE_CLASS);
+        vigraToMatlab_Array<T1>(rawImage, mwRawImage);
+
+        // initialize arrays for output
+        mwArray mwUnaryFactors(1, (num_classes-1)*numFits, mxDOUBLE_CLASS);
+        mwArray mwPairwiseFactors(1, numFits*numFits*(num_classes-1), mxDOUBLE_CLASS);
+        mwArray mwFitMasks(1, probStack.size(0)*probStack.size(1)*(num_classes-1)*numFits, mxINT8_CLASS);
+
+        // call MBS routine ----------------------------------------------------------------------------------------------->
+
+        AAM_Inf_2inits(3, mwUnaryFactors, mwPairwiseFactors, mwFitMasks, mwRawImage, mwRawImageShape, mwProbs, mwProbStackShape, mwSampling, mwNumGDsteps, mwLambdaU, mwLambdaPW);
+
+        // convert from Matlab types ---------------------------------------------------------------------------->
+
+        // get data out of mwArrays
+        MultiArray<3, int> fitMasks(Shape3(probStack.size(0), probStack.size(1), (num_classes-1)*numFits));
+        matlabToVigra_Array<int>(mwFitMasks, fitMasks);
+
+        MultiArray<2, double> unaryFactors(Shape2(num_classes-1,numFits));
+        matlabToVigra_UnaryFactors(mwUnaryFactors, unaryFactors);
+
+        MultiArray<3, double> pairwiseFactors(Shape3(numFits, numFits, num_classes-1));
+        matlabToVigra_PairwiseFactors(mwPairwiseFactors, pairwiseFactors);
+
+        // calc marginal and MAP solutions, and return corresponding probability and label images ---------------------------------------------------------------------------->
+
+        margProbStack.reshape(probStack.shape());
+        probFromFits<double, T1>(unaryFactors, pairwiseFactors, fitMasks, margProbStack);
+
+        MAPLabels.reshape(Shape2(probStack.size(0), probStack.size(1)));
+        MAPFromFits<double>(unaryFactors, pairwiseFactors, fitMasks, MAPLabels);
+
+    }
 
     template <class T1, class T2>
     static void probFromFits(const MultiArray<2,T1> & unaryFactors, const MultiArray<3,T1> & pairwiseFactors, const MultiArray<3, int> & fits, MultiArray<3,T2> & probs)
@@ -115,6 +241,44 @@ public:
         // do inference
         MultiArray<2, double> allMarginals;
         inferencetools::chainProbInference<T1,double>(unaryFactors, pairwiseFactors, allMarginals);
+
+        for(int i = 0; i < allMarginals.size(0); ++i)
+        {
+            std::cout<< "Variable " << i << " has the following marginal distribution P(x_" << i << ") : ";
+            for(int j = 0; j < allMarginals.size(1); ++j)
+                std::cout <<allMarginals(i,j) << " ";
+            std::cout<<std::endl;
+        }
+
+        // renormalize marginals
+        for(int i = 0; i < allMarginals.size(0); ++i)
+        {
+            double sum_Marginals = 0.0;
+            for(int j = 0; j < allMarginals.size(1); ++j)
+                sum_Marginals += allMarginals(i,j);
+            for(int j = 0; j < allMarginals.size(1); ++j)
+                allMarginals(i,j) /= sum_Marginals;
+        }
+
+        // output
+
+        for(int i = 0; i < allMarginals.size(0); ++i)
+        {
+            std::cout<< "Variable " << i << " has the following NORMALIZED marginal distribution P(x_" << i << ") : ";
+            for(int j = 0; j < allMarginals.size(1); ++j)
+                std::cout <<allMarginals(i,j) << " ";
+            std::cout<<std::endl;
+        }
+        for(int i = 0; i < allMarginals.size(0); ++i)
+        {
+            std::cout<< "Variable " << i << " has the following SUM marginal distribution P(x_" << i << ") : ";
+            double sum_marg = 0.0;
+            for(int j = 0; j < allMarginals.size(1); ++j){
+                sum_marg += allMarginals(i,j);
+            }
+            std::cout << sum_marg << std::endl;
+        }
+
 
         // transpose marginals, so that first index is over states
         MultiArrayView<2, double> allMarginalsTranspose = allMarginals.transpose();
@@ -248,50 +412,135 @@ public:
 
 
     template <class T1>
-    static void vigraToMatlabArray(const MultiArray<3, T1> & probStack, mwArray & mwProbs)
+    static void vigraToMatlab_Array(const MultiArray<3, T1> & vigraArray, mwArray & matlabArray)
     {
-        const int num_px = probStack.size();
+        const int num_px = vigraArray.size();
 
         // create std array and transfer data
-        T1* probArray = new float[num_px];
+        T1* stdArray = new T1[num_px];
 
         int count = 0;
-        for (int k = 0; k < probStack.size(2); ++k){
-            for (int j = 0; j < probStack.size(1); ++j){
-                for (int i = 0; i < probStack.size(0); ++i){
-                    probArray[count] = probStack(i,j,k);
+        for (int k = 0; k < vigraArray.size(2); ++k){
+            for (int i = 0; i < vigraArray.size(0); ++i){            // transpose b/c row-major order!
+                for (int j = 0; j < vigraArray.size(1); ++j){
+                    stdArray[count] = vigraArray(i,j,k);
                     count += 1;
                 }
             }
         }
 
         // create Matlab Array and transfer data
-        mwProbs.SetData(probArray, num_px);
+        matlabArray.SetData(stdArray, num_px);
 
-        delete [] probArray;
+        delete [] stdArray;
     }
 
     template <class T1>
-    static void matlabToVigraArray(const mwArray & mwSmoothProbs, MultiArray<3, T1> & smoothProbStack)
+    static void matlabToVigra_Array(const mwArray & matlabArray, MultiArray<3, T1> & vigraArray)
     {
-        const int num_px = mwSmoothProbs.NumberOfElements();
+        const int num_px = matlabArray.NumberOfElements();
 
-        float* smoothProbArray = new float[num_px];
-        mwSmoothProbs.GetData(smoothProbArray, num_px);
+        T1* stdArray = new T1[num_px];                     // potentially wastefull to go to float, when final type is T1 (eg, may be int)
+        matlabArray.GetData(stdArray, num_px);
 
         // transfer back to MultiArray
         int count = 0;
-        for (int k = 0; k < smoothProbStack.size(2); ++k){
-            for (int j = 0; j < smoothProbStack.size(1); ++j){
-                for (int i = 0; i < smoothProbStack.size(0); ++i){
-                    smoothProbStack(j,i,k) = smoothProbArray[count];    // transpose b/c row-major order!
+        for (int k = 0; k < vigraArray.size(2); ++k){
+            for (int i = 0; i < vigraArray.size(0); ++i){           // transpose b/c row-major order!
+                for (int j = 0; j < vigraArray.size(1); ++j){
+                    vigraArray(i,j,k) = stdArray[count];
                     count += 1;
                 }
             }
         }
 
-        delete [] smoothProbArray;
+        delete [] stdArray;
     }
+
+    static void matlabToVigra_UnaryFactors(const mwArray & mwUnaryFactors, MultiArray<2, double> & unaryFactors)
+    {
+        const int num_px = mwUnaryFactors.NumberOfElements();
+
+        double* stdArray = new double[num_px];
+        mwUnaryFactors.GetData(stdArray, num_px);
+
+        // transfer back to MultiArray
+        int count = 0;
+        for (int f = 0; f < unaryFactors.size(1); ++f){           // transpose b/c row-major order!
+            for (int c = 0; c < unaryFactors.size(0); ++c){
+                unaryFactors(c,f) = stdArray[count];
+                count += 1;
+            }
+        }
+        delete [] stdArray;
+    }
+
+    static void matlabToVigra_PairwiseFactors(const mwArray & mwPairwiseFactors, MultiArray<3, double> & pairwiseFactors)
+    {
+        const int num_px = mwPairwiseFactors.NumberOfElements();
+
+        double* stdArray = new double[num_px];
+        mwPairwiseFactors.GetData(stdArray, num_px);
+
+        // transfer back to MultiArray
+        int count = 0;
+        for (int c = 0; c < pairwiseFactors.size(2); ++c){           // transpose b/c row-major order!
+            for (int fR = 0; fR < pairwiseFactors.size(1); ++fR){
+                for (int fL = 0; fL < pairwiseFactors.size(0); ++fL){
+                    pairwiseFactors(fL,fR,c) = stdArray[count];
+                    count += 1;
+                }
+            }
+        }
+        delete [] stdArray;
+    }
+
+//    template <class T1>
+//    static void vigraToMatlabArray(const MultiArray<3, T1> & probStack, mwArray & mwProbs)
+//    {
+//        const int num_px = probStack.size();
+
+//        // create std array and transfer data
+//        T1* probArray = new float[num_px];
+
+//        int count = 0;
+//        for (int k = 0; k < probStack.size(2); ++k){
+//            for (int j = 0; j < probStack.size(1); ++j){
+//                for (int i = 0; i < probStack.size(0); ++i){
+//                    probArray[count] = probStack(i,j,k);
+//                    count += 1;
+//                }
+//            }
+//        }
+
+//        // create Matlab Array and transfer data
+//        mwProbs.SetData(probArray, num_px);
+
+//        delete [] probArray;
+//    }
+
+//    template <class T1>
+//    static void matlabToVigraArray(const mwArray & mwSmoothProbs, MultiArray<3, T1> & smoothProbStack)
+//    {
+//        const int num_px = mwSmoothProbs.NumberOfElements();
+
+//        float* smoothProbArray = new float[num_px];
+//        mwSmoothProbs.GetData(smoothProbArray, num_px);
+
+//        // transfer back to MultiArray
+//        int count = 0;
+//        for (int k = 0; k < smoothProbStack.size(2); ++k){
+//            for (int j = 0; j < smoothProbStack.size(1); ++j){
+//                for (int i = 0; i < smoothProbStack.size(0); ++i){
+//                    smoothProbStack(j,i,k) = smoothProbArray[count];    // transpose b/c row-major order!
+//                    count += 1;
+//                }
+//            }
+//        }
+
+//        delete [] smoothProbArray;
+//    }
+
 };
 
 #endif // SMOOTHINGTOOLS_HXX
