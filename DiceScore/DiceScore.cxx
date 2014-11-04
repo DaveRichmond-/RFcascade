@@ -7,17 +7,17 @@ int main(int argc, const char **argv)
     typedef UInt8 LabelType;
 
     // directories
-    std::string gtPath("/Users/richmond/Data/Somites/Processed/First set/registered/Labels/Test");                                         // NOTE - CHANGED TO TRAIN!!!!!!!!!!!!!!!!!!
-    std::string resultsBasePath("/Users/richmond/Analysis/SomiteTracker/RFs/real_data/on_registered_data/Cascade_w_Smoothing");
+    std::string gtPath = argv[1];
+    std::string resultsBasePath = argv[2];
 
     //
     std::string resultsPath;
-    resultsPath = resultsBasePath + argv[2];
+    resultsPath = resultsBasePath + argv[3];
 
     // other parms
-    int num_levels = atoi(argv[3]);
-    int num_images = atoi(argv[4]);
-    int num_classes = atoi(argv[5]);
+    int num_levels = atoi(argv[4]);
+    int num_images = atoi(argv[5]);
+    int num_classes = atoi(argv[6]);
 
     // calc dice coeffs and save to csv
     imagetools::diceOnFolder<LabelType>(gtPath, resultsPath, num_levels, num_images, num_classes);

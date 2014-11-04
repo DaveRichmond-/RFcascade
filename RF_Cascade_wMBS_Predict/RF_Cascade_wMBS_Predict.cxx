@@ -28,27 +28,26 @@ int run_main(int argc, const char **argv)
 {
     // USER DEFINED PARAMETERS !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
 
-    std::string baseInputPath("/Users/richmond/Data/Somites/Processed/First set/registered");
-    std::string baseOutputPath("/Users/richmond/Analysis/SomiteTracker/RFs/real_data/on_registered_data/Cascade_w_Smoothing");
-
+    std::string baseInputPath = argv[1];
+    std::string baseOutputPath = argv[2];
     //
     std::string rawPath;
-    rawPath = baseInputPath + argv[1];
+    rawPath = baseInputPath + argv[3];
     std::string featPath;
-    featPath = baseInputPath + argv[2];
+    featPath = baseInputPath + argv[4];
     std::string labelPath;
-    labelPath = baseInputPath + argv[3];
+    labelPath = baseInputPath + argv[5];
     std::string rfPath;
-    rfPath = baseOutputPath + argv[4];
+    rfPath = baseOutputPath + argv[6];
     std::string outputPath;
     outputPath = rfPath;
 
     std::string rfName;
-    rfName = rfPath + "/" + argv[5];
+    rfName = rfPath + "/" + argv[7];
 
     // some user defined parameters
     double smoothing_scale = 3.0;
-    int numGDsteps = 50;
+    int numGDsteps = 2;
     float lambdaU = 2;
     float lambdaPW = 1;
     int numFits = 1;
@@ -61,10 +60,10 @@ int run_main(int argc, const char **argv)
 
     // import images --------------------->
 
-    int num_images = atoi(argv[6]);
-    int sampling = atoi(argv[7]);
+    int num_images = atoi(argv[8]);
+    int sampling = atoi(argv[9]);
 
-    int smooth_flag = atoi(argv[8]);
+    int smooth_flag = atoi(argv[10]);
 
     ArrayVector< MultiArray<2, float> > rfFeaturesArray;
     ArrayVector< MultiArray<2, UInt8> > rfLabelsArray;
