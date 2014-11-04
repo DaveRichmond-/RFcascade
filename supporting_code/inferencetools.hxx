@@ -49,7 +49,8 @@ public:
         // this is just a heuristic. the partition function might still be zero.
 
         // normalization factors for unaries:
-        double eps = 1E-5;
+        double epsUnary = numLabels*1E-5;
+        double epsPairwise = numLabels*numLabels*1E-5;
         double globalFactor=sqrt(numLabels);
         MultiArray<1, T1> unaryFactorSums(numVariables);
         for (IndexType v = 0; v < numVariables; ++v){
@@ -57,7 +58,7 @@ public:
             for (LabelType s = 0; s < numLabels; ++s){
                 unaryFactorSums(v) += unaryFactors(v,s);
             }
-            if (unaryFactorSums(v)<eps) {
+            if (unaryFactorSums(v)<epsUnary) {
                 std::cout<< "Numerical instability alert: Variable " << v << ": unary factor sums to " << unaryFactorSums(v) << " ";
                 std::cout<<std::endl;
             }
@@ -71,7 +72,7 @@ public:
             for (LabelType sL = 0; sL < numLabels; ++sL)
                 for (LabelType sR = 0; sR < numLabels; ++sR)
                     pairwiseFactorSums(v) += pairwiseFactors(sL,sR,v);
-            if (pairwiseFactorSums(v)<eps) {
+            if (pairwiseFactorSums(v)<epsPairwise) {
                 std::cout<< "Numerical instability alert: Variables " << v << " and " << v+1 << " : pairwise factor sums to " << pairwiseFactorSums(v) << " ";
                 std::cout<<std::endl;
             }
@@ -81,12 +82,9 @@ public:
         // load unary factors into gm
         for (IndexType v = 0; v < numVariables; ++v){
             const LabelType shape[] = {numLabels};
-            ExplicitFunction f(shape, shape+1);
-            for (LabelType s = 0; s < numLabels; ++s){
-                if (unaryFactorSums(v)<eps) {
-                    f(s)=1;
-                }
-                else {
+            ExplicitFunction f(shape, shape+1,1); // initialize to 1
+            if (unaryFactorSums(v)>=epsUnary) {
+                for (LabelType s = 0; s < numLabels; ++s){
                     f(s) = unaryFactors(v,s)/unaryFactorSums(v);
                 }
             }
@@ -98,12 +96,10 @@ public:
         // load pair-wise factors into gm
         for (IndexType v = 0; v < numVariables-1; ++v){
             const LabelType shape[] = {numLabels, numLabels};
-            ExplicitFunction f(shape, shape+2);
-            for (LabelType sL = 0; sL < numLabels; ++sL){
-                for (LabelType sR = 0; sR < numLabels; ++sR){
-                    if (pairwiseFactorSums(v)<eps) {
-                        f(sL,sR)=1;
-                    } else {
+            ExplicitFunction f(shape, shape+2, 1); // initialize to 1
+            if (pairwiseFactorSums(v)>=epsPairwise) {
+                for (LabelType sL = 0; sL < numLabels; ++sL){
+                    for (LabelType sR = 0; sR < numLabels; ++sR){
                         f(sL,sR) = pairwiseFactors(sL,sR,v)/pairwiseFactorSums(v);
                     }
                 }
