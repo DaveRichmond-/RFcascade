@@ -27,24 +27,24 @@ int run_main(int argc, const char **argv)
 {
     // USER DEFINED PARAMETERS !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
 
-    std::string baseInputPath("/Users/richmond/Data/Somites/Processed/First set/registered");
-    std::string baseOutputPath("/Users/richmond/Analysis/SomiteTracker/RFs/real_data/on_registered_data/Cascade_w_Smoothing");
+    std::string baseInputPath = argv[1];
+    std::string baseOutputPath = argv[2];
 
     std::string rawPath;
-    rawPath = baseInputPath + argv[1];
+    rawPath = baseInputPath + argv[3];
     std::string featPath;
-    featPath = baseInputPath + argv[2];
+    featPath = baseInputPath + argv[4];
     std::string labelPath;
-    labelPath = baseInputPath + argv[3];
+    labelPath = baseInputPath + argv[5];
     std::string rfPath;
-    rfPath = baseOutputPath + argv[4];
+    rfPath = baseOutputPath + argv[6];
 
     std::string outputPath;
     outputPath = rfPath;
     std::string rfName;
     rfName = rfPath + "/" + "rf_cascade";
 
-    int loadRF_flag = atoi(argv[5]);
+    int loadRF_flag = atoi(argv[7]);
 
     // some user defined parameters
     double smoothing_scale = 3.0;
@@ -60,9 +60,9 @@ int run_main(int argc, const char **argv)
     typedef UInt8 LabelType;
 
     // import images --------------------->
-    int num_images = atoi(argv[6]);
-    int num_levels = atoi(argv[7]);
-    int sampling = atoi(argv[8]);
+    int num_images = atoi(argv[8]);
+    int num_levels = atoi(argv[9]);
+    int sampling = atoi(argv[10]);
 
     ArrayVector< MultiArray<2, ImageType> > rfFeaturesArray;
     ArrayVector< MultiArray<2, LabelType> > rfLabelsArray;
@@ -82,25 +82,25 @@ int run_main(int argc, const char **argv)
 
     ArrayVector< RandomForest<float> > rf_cascade;
 
-    int num_classes = atoi(argv[9]);
-    int tree_count = atoi(argv[10]);
+    int num_classes = atoi(argv[11]);
+    int tree_count = atoi(argv[12]);
 
     ArrayVector<int> feature_mix(3);
-    feature_mix[0] = atoi(argv[11]);
-    feature_mix[1] = atoi(argv[12]);
-    feature_mix[2] = atoi(argv[13]);
+    feature_mix[0] = atoi(argv[13]);
+    feature_mix[1] = atoi(argv[14]);
+    feature_mix[2] = atoi(argv[15]);
 
-    int max_offset = atoi(argv[14]) / sampling;        // account for resampling!
+    int max_offset = atoi(argv[16]) / sampling;        // account for resampling!
     std::cout << "\n" << "scaled max offset = " << max_offset << std::endl;
 
     // set early stopping depth
-    int depth = atoi(argv[15]);
-    int min_split_node_size = atoi(argv[16]);
+    int depth = atoi(argv[17]);
+    int min_split_node_size = atoi(argv[18]);
     EarlyStopDepthAndNodeSize stopping(depth, min_split_node_size);
 
     // even more params...
-    int smooth_flag = atoi(argv[17]);
-    double sample_fraction = atof(argv[18]);
+    int smooth_flag = atoi(argv[19]);
+    double sample_fraction = atof(argv[20]);
 
     std::cout << "sample fraction is: " << sample_fraction << std::endl;
 
