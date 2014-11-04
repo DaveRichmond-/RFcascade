@@ -82,7 +82,7 @@ public:
 
         // call MBS routine
         mwArray mwSmoothProbs(1, probStack.size(), mxSINGLE_CLASS);
-        MBS_AAM_gS(1, mwSmoothProbs, mwRawImage, mwRawImageShape, mwProbs, mwProbStackShape, mwSampling, mwNumGDsteps, mwLambda);
+        MBS_AAM_gS(1, mwSmoothProbs, mwRawImage, mwRawImageShape, mwProbs, mwProbStackShape, mwSampling, mwNumGDsteps, mwLambda, mwArray(0));
 
         // get data out of mwArray
         smoothProbStack.reshape(Shape3(probStack.size(0), probStack.size(1), probStack.size(2)));
@@ -134,7 +134,7 @@ public:
 
         // call MBS routine ----------------------------------------------------------------------------------------------->
 
-        MBS_AAM_forINF(3, mwUnaryFactors, mwPairwiseFactors, mwFitMasks, mwRawImage, mwRawImageShape, mwProbs, mwProbStackShape, mwSampling, mwNumGDsteps, mwLambdaU, mwLambdaPW);
+        MBS_AAM_forINF(3, mwUnaryFactors, mwPairwiseFactors, mwFitMasks, mwRawImage, mwRawImageShape, mwProbs, mwProbStackShape, mwSampling, mwNumGDsteps, mwLambdaU, mwLambdaPW, mwArray(0));
 
         // convert from Matlab types ---------------------------------------------------------------------------->
 
@@ -272,6 +272,7 @@ public:
 //                std::cout <<allMarginals(i,j) << " ";
 //            std::cout<<std::endl;
 //        }
+
         for(int i = 0; i < allMarginals.size(0); ++i)
         {
             std::cout<< "Variable " << i << " has the following SUM marginal distribution P(x_" << i << ") : ";
