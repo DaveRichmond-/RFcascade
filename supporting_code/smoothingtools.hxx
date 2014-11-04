@@ -203,7 +203,7 @@ public:
 
         // call MBS routine ----------------------------------------------------------------------------------------------->
 
-        AAM_Inf_2inits(3, mwUnaryFactors, mwPairwiseFactors, mwFitMasks, mwRawImage, mwRawImageShape, mwProbs, mwProbStackShape, mwSampling, mwNumGDsteps, mwLambdaU, mwLambdaPW);
+        AAM_Inf_2inits(3, mwUnaryFactors, mwPairwiseFactors, mwFitMasks, mwRawImage, mwRawImageShape, mwProbs, mwProbStackShape, mwSampling, mwNumGDsteps, mwLambdaU, mwLambdaPW, mwArray(0));
 
         // convert from Matlab types ---------------------------------------------------------------------------->
 
@@ -265,14 +265,13 @@ public:
         }
 
         // output
-
-        for(int i = 0; i < allMarginals.size(0); ++i)
-        {
-            std::cout<< "Variable " << i << " has the following NORMALIZED marginal distribution P(x_" << i << ") : ";
-            for(int j = 0; j < allMarginals.size(1); ++j)
-                std::cout <<allMarginals(i,j) << " ";
-            std::cout<<std::endl;
-        }
+//        for(int i = 0; i < allMarginals.size(0); ++i)
+//        {
+//            std::cout<< "Variable " << i << " has the following NORMALIZED marginal distribution P(x_" << i << ") : ";
+//            for(int j = 0; j < allMarginals.size(1); ++j)
+//                std::cout <<allMarginals(i,j) << " ";
+//            std::cout<<std::endl;
+//        }
         for(int i = 0; i < allMarginals.size(0); ++i)
         {
             std::cout<< "Variable " << i << " has the following SUM marginal distribution P(x_" << i << ") : ";
@@ -282,7 +281,6 @@ public:
             }
             std::cout << sum_marg << std::endl;
         }
-
 
         // transpose marginals, so that first index is over states
         MultiArrayView<2, double> allMarginalsTranspose = allMarginals.transpose();
@@ -345,10 +343,6 @@ public:
             for (int j = 0; j < fits.size(1); ++j)
                 for (int i = 0; i < fits.size(0); ++i)
                     weightedFits(i,j,k) = static_cast<float>(fits(i,j,k)) * static_cast<float>(allMarginalsTranspose[k]);
-
-        // test
-        VolumeExportInfo Export_info("/Users/richmond/Desktop/tests/weightedFits/weightedFits",".tif");
-        exportVolume(weightedFits, Export_info);
 
         // fill smoothProbs - EXPLICIT
         probs.init(0.0);

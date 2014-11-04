@@ -49,8 +49,8 @@ int run_main(int argc, const char **argv)
     // some user defined parameters
     double smoothing_scale = 3.0;
     int numGDsteps = 50;
-    float lambdaU = 2;
-    float lambdaPW = 2;
+    float lambdaU = 4;
+    float lambdaPW = 4;
     int numFits = 1;
     int numCentroidsUsed = 21;
 
