@@ -24,13 +24,15 @@ grayImage = reshape(grayImage, [grayImageShape(1), grayImageShape(2)]);
 probMap = reshape(probMap, [probMapShape(1), probMapShape(2), probMapShape(3)]);
 
 % upsample probMap to full res
-fullProbMap = zeros(probMapShape(1)*sampling, probMapShape(2)*sampling, probMapShape(3));
-for i = 1:size(probMap,3),
-    fullProbMap(:,:,i) = upsample_noFilt(probMap(:,:,i), sampling);
+if (sampling ~= 1)
+    fullProbMap = zeros(probMapShape(1)*sampling, probMapShape(2)*sampling, probMapShape(3));
+    for i = 1:size(probMap,3),
+        fullProbMap(:,:,i) = upsample_noFilt(probMap(:,:,i), sampling);
+    end
+    fullProbMap = fullProbMap(1:grayImageShape(1), 1:grayImageShape(2), :);
+    probMap = fullProbMap;
+    clear fullProbMap
 end
-fullProbMap = fullProbMap(1:grayImageShape(1), 1:grayImageShape(2), :);
-probMap = fullProbMap;
-clear fullProbMap
 
 % visualize to check for permutation problems
 if output_flag,
@@ -48,7 +50,9 @@ end
 [unaryFactors, pairwiseFactors, fitMasks] = factorsFromFits(segmentsFit, costs, lambdaU, lambdaPW, probMap, centroidStats);
 
 % resample fitMasks
-fitMasks = permute(downsample(permute(downsample(fitMasks, sampling),[2,1,3]), sampling),[2,1,3]);
+if (sampling ~= 1)
+    fitMasks = permute(downsample(permute(downsample(fitMasks, sampling),[2,1,3]), sampling),[2,1,3]);
+end
 
 % reshape output for VIGRA
 fitMasks        = int8(reshape(fitMasks,[1, prod([size(fitMasks)])]));
