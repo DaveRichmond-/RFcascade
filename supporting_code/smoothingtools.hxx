@@ -242,14 +242,14 @@ public:
         MultiArray<2, double> allMarginals;
         inferencetools::chainProbInference<T1,double>(unaryFactors, pairwiseFactors, allMarginals);
 
-        for(int i = 0; i < allMarginals.size(0); ++i)
+/*        for(int i = 0; i < allMarginals.size(0); ++i)
         {
             std::cout<< "Variable " << i << " has the following marginal distribution P(x_" << i << ") : ";
             for(int j = 0; j < allMarginals.size(1); ++j)
                 std::cout <<allMarginals(i,j) << " ";
             std::cout<<std::endl;
         }
-
+*/
         // renormalize marginals
         for(int i = 0; i < allMarginals.size(0); ++i)
         {
@@ -257,8 +257,7 @@ public:
             for(int j = 0; j < allMarginals.size(1); ++j)
                 sum_Marginals += allMarginals(i,j);
 
-            std::cout<< "Variable " << i << " has the following sum of marginals: " << sum_Marginals << " ";
-            std::cout<<std::endl;
+//            std::cout<< "Variable " << i << " has the following sum of marginals: " << sum_Marginals << " " << std::endl;
 
             for(int j = 0; j < allMarginals.size(1); ++j)
                 allMarginals(i,j) /= sum_Marginals;
@@ -273,7 +272,7 @@ public:
 //            std::cout<<std::endl;
 //        }
 
-        for(int i = 0; i < allMarginals.size(0); ++i)
+/*        for(int i = 0; i < allMarginals.size(0); ++i)
         {
             std::cout<< "Variable " << i << " has the following SUM marginal distribution P(x_" << i << ") : ";
             double sum_marg = 0.0;
@@ -282,7 +281,7 @@ public:
             }
             std::cout << sum_marg << std::endl;
         }
-
+*/
         // transpose marginals, so that first index is over states
         MultiArrayView<2, double> allMarginalsTranspose = allMarginals.transpose();
 
