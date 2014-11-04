@@ -1,6 +1,6 @@
 //
 // MATLAB Compiler: 5.0 (R2013b)
-// Date: Tue Nov  4 00:04:46 2014
+// Date: Tue Nov  4 12:42:37 2014
 // Arguments: "-B" "macro_default" "-v" "-W" "cpplib:libmodelBasedSmoothing2"
 // "-T" "link:lib" "modelBasedSmoothing_wARGS" "MBS_AAM_gS" "MBS_AAM_forINF"
 // "AAM_Inf_2inits" 
@@ -149,9 +149,10 @@ LIB_libmodelBasedSmoothing2_CPP_API
 void MW_CALL_CONV MBS_AAM_gS(int nargout, mwArray& smoothProbMap, const mwArray& 
                              grayImage, const mwArray& grayImageShape, const mwArray& 
                              probMap, const mwArray& probMapShape, const mwArray& 
-                             sampling, const mwArray& numGDsteps, const mwArray& lambda)
+                             sampling, const mwArray& numGDsteps, const mwArray& lambda, 
+                             const mwArray& varargin)
 {
-  mclcppMlfFeval(_mcr_inst, "MBS_AAM_gS", nargout, 1, 7, &smoothProbMap, &grayImage, &grayImageShape, &probMap, &probMapShape, &sampling, &numGDsteps, &lambda);
+  mclcppMlfFeval(_mcr_inst, "MBS_AAM_gS", nargout, 1, -8, &smoothProbMap, &grayImage, &grayImageShape, &probMap, &probMapShape, &sampling, &numGDsteps, &lambda, &varargin);
 }
 
 LIB_libmodelBasedSmoothing2_CPP_API 
@@ -160,9 +161,10 @@ void MW_CALL_CONV MBS_AAM_forINF(int nargout, mwArray& unaryFactors, mwArray&
                                  grayImage, const mwArray& grayImageShape, const mwArray& 
                                  probMap, const mwArray& probMapShape, const mwArray& 
                                  sampling, const mwArray& numGDsteps, const mwArray& 
-                                 lambdaU, const mwArray& lambdaPW)
+                                 lambdaU, const mwArray& lambdaPW, const mwArray& 
+                                 varargin)
 {
-  mclcppMlfFeval(_mcr_inst, "MBS_AAM_forINF", nargout, 3, 8, &unaryFactors, &pairwiseFactors, &fitMasks, &grayImage, &grayImageShape, &probMap, &probMapShape, &sampling, &numGDsteps, &lambdaU, &lambdaPW);
+  mclcppMlfFeval(_mcr_inst, "MBS_AAM_forINF", nargout, 3, -9, &unaryFactors, &pairwiseFactors, &fitMasks, &grayImage, &grayImageShape, &probMap, &probMapShape, &sampling, &numGDsteps, &lambdaU, &lambdaPW, &varargin);
 }
 
 LIB_libmodelBasedSmoothing2_CPP_API 
