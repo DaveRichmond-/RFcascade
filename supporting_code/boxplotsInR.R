@@ -1,14 +1,20 @@
-# install.packages("ggplot2",dep=TRUE)
-# install.packages("MASS",dep=TRUE)
-# install.packages("pracma",dep=TRUE)
-# install.packages("gridExtra",dep=TRUE)
+
+args <- commandArgs(trailingOnly = TRUE)
+
+pkgs <- c("ggplot2","MASS","pracma","gridExtra")
+
+for(x in pkgs){
+  if(!is.element(x, installed.packages()[,1]))
+    {install.packages(x, dep=TRUE, repos="http://cran.fhcrc.org")
+  } else {print(paste(x, " library already installed"))}
+}
 
 library(ggplot2)
 library(MASS)
 library(pracma)
 library(gridExtra)
 
-setwd('/Users/richmond/Analysis/SomiteTracker/RFs/real_data/on_registered_data/Cascade_w_Smoothing/MBS_AAM_Inference/2init/U=4_PW=4/allDataEveryLevel_fraction=0.33_depth=10/Labels')
+setwd(args[1])
 
 diceTable = read.csv("diceScores.txt")
 
