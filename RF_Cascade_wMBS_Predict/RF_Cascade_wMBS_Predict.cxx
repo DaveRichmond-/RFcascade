@@ -47,9 +47,9 @@ int run_main(int argc, const char **argv)
 
     // some user defined parameters
     double smoothing_scale = 3.0;
-    int numGDsteps = 2;
-    float lambdaU = 2;
-    float lambdaPW = 1;
+    int numGDsteps = 5;
+    float lambdaU = 4;
+    float lambdaPW = 4;
     int numFits = 1;
     int numCentroidsUsed = 21;
 
@@ -222,14 +222,19 @@ int run_main(int argc, const char **argv)
 
             // convert probs to labels
             MultiArray<2, UInt8> labels(Shape2(num_samples, 1));
+            MultiArray<2, UInt8> smoothLabels(Shape2(num_samples, 1));
             for (int k = 0; k < labels.size(0); ++k)
             {
                 rf_cascade[i].ext_param_.to_classlabel(linalg::argMax(probs.subarray(Shape2(k,0), Shape2(k+1,num_classes))), labels[k]);
+                rf_cascade[i].ext_param_.to_classlabel(linalg::argMax(smoothProbs.subarray(Shape2(k,0), Shape2(k+1,num_classes))), smoothLabels[k]);
             }
 
             // partition labels into array of label images
             ArrayVector<MultiArray<3, LabelType> > labelArray(num_images);
             imagetools::probsToImages<LabelType>(labels, labelArray, xy_dim);
+
+            ArrayVector<MultiArray<3, LabelType> > smoothLabelArray(num_images);
+            imagetools::probsToImages<LabelType>(smoothLabels, smoothLabelArray, xy_dim);
 
             // repeat for gt labels
 //            ArrayVector<MultiArray<3, LabelType> > gtLabelArray(num_images);
@@ -242,6 +247,11 @@ int run_main(int argc, const char **argv)
                 std::string fname(outputPath + "/" + "image#" + image_idx + "_level#" + level_idx);
                 VolumeExportInfo Export_info(fname.c_str(),".tif");
                 exportVolume(labelArray[j], Export_info);
+
+                std::string fnameSmooth(outputPath + "/" + "image_smooth#" + image_idx + "_level#" + level_idx);
+                VolumeExportInfo Export_info_smooth(fnameSmooth.c_str(),".tif");
+                exportVolume(smoothLabelArray[j], Export_info_smooth);
+
             }
 
             // save probability maps
