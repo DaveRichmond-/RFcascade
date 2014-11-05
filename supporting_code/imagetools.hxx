@@ -181,12 +181,24 @@ public:
         ArrayVector<float> diceScore(num_classes);
         int c_GT, c_AL;
 
+        int dimAutoX=autoLabels.size(0);
+        int dimAutoY=autoLabels.size(1);
+
+        int dimGTX=groundTruthLabels.size(0);
+        int dimGTY=groundTruthLabels.size(1);
+
+        double autoFactorX=dimAutoX/(double)dimGTX;
+        double autoFactorY=dimAutoY/(double)dimGTY;
+
         //
         for (int j=0; j<groundTruthLabels.size(1); ++j){
             for (int i=0; i<groundTruthLabels.size(0); ++i){
 
                 c_GT = groundTruthLabels(i,j);
-                c_AL = autoLabels(i,j);
+
+                int iAuto=(int)(i*autoFactorX);
+                int jAuto=(int)(j*autoFactorY);
+                c_AL = autoLabels(iAuto,jAuto);
 
                 volume_of_GT[c_GT] += 1;
                 volume_of_AL[c_AL] += 1;
