@@ -18,6 +18,8 @@ featureMix_offsetDifferenceFeatures=5
 treeDepth=15
 splitNodeSize=10
 sampleFraction=0.05
+numAAMsteps=5
+useAllImagesAtEveryLevel=1
 
 resultPathTrain=Results/Train$experimentID
 baseTrainInputPath=/Users/kainmull/Data/Somites/
@@ -66,7 +68,7 @@ export DYLD_LIBRARY_PATH=./supporting_code/MBS_dylib
 echo " "
 echo running Learn
 echo " "
-echo ./RF_Cascade_wMBS_Learn-build/RF_Cascade_wMBS_Learn $baseTrainInputPath $baseTrainResultPath $rawPathTrain $featurePathTrain $labelPathTrain $resultPathTrain $useExistingForest $numImagesTrain $numLevels $reSampleBy $numClasses $numTrees $featureMix_features $featureMix_offsetFeatures $featureMix_offsetDifferenceFeatures $maxOffset $treeDepth $splitNodeSize $howToSmoothProbMaps $sampleFraction
+echo ./RF_Cascade_wMBS_Learn-build/RF_Cascade_wMBS_Learn $baseTrainInputPath $baseTrainResultPath $rawPathTrain $featurePathTrain $labelPathTrain $resultPathTrain $useExistingForest $numImagesTrain $numLevels $reSampleBy $numClasses $numTrees $featureMix_features $featureMix_offsetFeatures $featureMix_offsetDifferenceFeatures $maxOffset $treeDepth $splitNodeSize $howToSmoothProbMaps $sampleFraction $numAAMsteps $useAllImagesAtEveryLevel
 echo " "
 
 ./RF_Cascade_wMBS_Learn-build/RF_Cascade_wMBS_Learn $baseTrainInputPath $baseTrainResultPath $rawPathTrain $featurePathTrain $labelPathTrain $resultPathTrain $useExistingForest $numImagesTrain $numLevels $reSampleBy $numClasses $numTrees $featureMix_features $featureMix_offsetFeatures $featureMix_offsetDifferenceFeatures $maxOffset $treeDepth $splitNodeSize $howToSmoothProbMaps $sampleFraction
@@ -88,7 +90,7 @@ cp $baseTrainResultPath$resultPathTrain/$rfName $baseTestResultPath/$resultPathT
 echo " "
 echo running Predict
 echo " "
-echo ./RF_Cascade_wMBS_Predict-build/RF_Cascade_wMBS_Predict $baseTestInputPath $baseTestResultPath $rawPathTest $featurePathTest $labelPathTest $resultPathTest $rfName $numImagesTest $resampleByTest $howToSmoothProbMaps
+echo ./RF_Cascade_wMBS_Predict-build/RF_Cascade_wMBS_Predict $baseTestInputPath $baseTestResultPath $rawPathTest $featurePathTest $labelPathTest $resultPathTest $rfName $numImagesTest $resampleByTest $howToSmoothProbMaps $numAAMsteps
 echo " "
 
 ./RF_Cascade_wMBS_Predict-build/RF_Cascade_wMBS_Predict $baseTestInputPath $baseTestResultPath $rawPathTest $featurePathTest $labelPathTest $resultPathTest $rfName $numImagesTest $resampleByTest $howToSmoothProbMaps

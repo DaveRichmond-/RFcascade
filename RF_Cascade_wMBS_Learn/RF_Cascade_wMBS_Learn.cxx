@@ -25,12 +25,12 @@ using namespace vigra;
 
 int run_main(int argc, const char **argv)
 {
-    if (argc<21) {
+    if (argc<23) {
 
         std::cout << "RF_Cascade_wMBS_Learn needs 20 arguments. Usage: " << std::endl;
         std::cout << "RF_Cascade_wMBS_Learn  <baseInputPath> <baseOutputPath> <rawPath> <featurePath> <labelPath> <randomForestPath> ";
         std::cout << "useExistingForest numImages numLevels reSampleBy numClasses numTrees featureMix_features featureMix_offsetFeatures featureMix_offsetDifferenceFeatures ";
-        std::cout << "maxOffset treeDepth splitNodeSize howToSmoothProbMaps sampleFraction " << std::endl;
+        std::cout << "maxOffset treeDepth splitNodeSize howToSmoothProbMaps sampleFraction numAAMsteps useAllImagesAtEveryLevel" << std::endl;
         std::cout << "Aborting. " << std::endl;
 
         return 0;
@@ -59,7 +59,7 @@ int run_main(int argc, const char **argv)
 
     // some user defined parameters
     double smoothing_scale = 3.0;
-    int numGDsteps = 5;
+    int numGDsteps = atoi(argv[21]);
     float lambdaU = 4;
     float lambdaPW = 4;
     int numFits = 1;
@@ -75,17 +75,20 @@ int run_main(int argc, const char **argv)
     int num_levels = atoi(argv[9]);
     int sampling = atoi(argv[10]);
 
+    bool useAllImagesAtEveryLevel = (atoi(argv[22])>0);
+    bool rfFeaturesArraySize = useAllImagesAtEveryLevel?1:num_levels;
+
     ArrayVector< MultiArray<2, ImageType> > rfFeaturesArray;
     ArrayVector< MultiArray<2, LabelType> > rfLabelsArray;
     Shape2 xy_dim(0,0);
 
-    imagetools::getArrayOfFeaturesAndLabels(featPath, labelPath, rfFeaturesArray, rfLabelsArray, xy_dim, num_levels, num_images, sampling);
+    imagetools::getArrayOfFeaturesAndLabels(featPath, labelPath, rfFeaturesArray, rfLabelsArray, xy_dim, rfFeaturesArraySize, num_images, sampling);
 
     // re-use above strategy to get grayscale images.  need some dummy variables.
     ArrayVector< MultiArray<2, ImageType> > rfRawImageArray;
     Shape2 raw_dim(0,0);
 
-    imagetools::getArrayOfRawImages(rawPath, rfRawImageArray, raw_dim, num_levels, num_images);
+    imagetools::getArrayOfRawImages(rawPath, rfRawImageArray, raw_dim, rfFeaturesArraySize, num_images);
 
     std::cout << "\n" << "image import succeeded!" << std::endl;
 
@@ -170,9 +173,11 @@ int run_main(int argc, const char **argv)
         for (int i=rf_cascade.size(); i<num_levels; ++i)
         {
 
+            int featureArrayIdx = useAllImagesAtEveryLevel?0:i;
+
             // some useful constants
-            int num_samples = rfFeaturesArray[i].size(0);
-            int num_filt_features = rfFeaturesArray[i].size(1);
+            int num_samples = rfFeaturesArray[featureArrayIdx].size(0);
+            int num_filt_features = rfFeaturesArray[featureArrayIdx].size(1);
             int num_images_per_level = num_samples / (xy_dim[0]*xy_dim[1]);
 
             std::cout << "\n" << "level: " << i << std::endl;
@@ -189,7 +194,7 @@ int run_main(int argc, const char **argv)
                 if (j==0)
                 {
                     rfFeatures_wProbs.reshape(Shape2(num_samples, num_filt_features + 2*num_classes));
-                    rfFeatures_wProbs.subarray(Shape2(0,0), Shape2(num_samples,num_filt_features)) = rfFeaturesArray[i];
+                    rfFeatures_wProbs.subarray(Shape2(0,0), Shape2(num_samples,num_filt_features)) = rfFeaturesArray[featureArrayIdx];
                 }
 
                 // define probs to store output of predictProbabilities
@@ -202,7 +207,7 @@ int run_main(int argc, const char **argv)
 
                 // generate new probability map
                 if (j==0)
-                    rf_cascade[j].predictProbabilities(rfFeaturesArray[i], probs);
+                    rf_cascade[j].predictProbabilities(rfFeaturesArray[featureArrayIdx], probs);
                 else
                     rf_cascade[j].predictProbabilities(rfFeatures_wProbs, probs);
 
@@ -212,7 +217,7 @@ int run_main(int argc, const char **argv)
 
                 // convert raw images to array of stacks
                 ArrayVector<MultiArray<3, ImageType> > rawImageArray(num_images_per_level);
-                imagetools::probsToImages<ImageType>(rfRawImageArray[i], rawImageArray, raw_dim);
+                imagetools::probsToImages<ImageType>(rfRawImageArray[featureArrayIdx], rawImageArray, raw_dim);
 
                 // smooth the new probability maps
                 ArrayVector<MultiArray<3, ImageType> > smoothProbArray(num_images_per_level);
@@ -289,9 +294,9 @@ int run_main(int argc, const char **argv)
             start = std::clock();
             // learn ith forest
             if (i==0)
-                rf_cascade[i].learn(rfFeaturesArray[i], rfLabelsArray[i], rf_default(), rf_default(), stopping);
+                rf_cascade[i].learn(rfFeaturesArray[featureArrayIdx], rfLabelsArray[featureArrayIdx], rf_default(), rf_default(), stopping);
             else
-                rf_cascade[i].learn(rfFeatures_wProbs, rfLabelsArray[i], rf_default(), rf_default(), stopping);
+                rf_cascade[i].learn(rfFeatures_wProbs, rfLabelsArray[featureArrayIdx], rf_default(), rf_default(), stopping);
             // toc
             duration = ((std::clock() - start) / (float) CLOCKS_PER_SEC) / 60.0;
             std::cout << "time to learn level " << i << " [min]: " << duration << std::endl;
