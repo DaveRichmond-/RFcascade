@@ -21,7 +21,8 @@ sampleFraction=0.05
 numAAMsteps=5
 useAllImagesAtEveryLevel=1
 
-resultPathTrain=Results/Train$experimentID
+resultFolderName=Results
+resultPathTrain=$resultFolderName/Train$experimentID
 baseTrainInputPath=/Users/kainmull/Data/Somites/
 baseTrainResultPath=/Users/kainmull/Data/Somites/
 rawPathTrain=RawImages/Train
@@ -39,7 +40,7 @@ howToSmoothProbMaps=3
 numImagesTest=1
 resampleByTest=$reSampleBy
 
-resultPathTest=Results/Test$experimentID/
+resultPathTest=$resultFolderName/Test$experimentID/
 baseTestInputPath=/Users/kainmull/Data/Somites/
 baseTestResultPath=/Users/kainmull/Data/Somites/
 rawPathTest=RawImages/Test
@@ -55,6 +56,7 @@ gtPath=/Users/kainmull/Data/Somites/Labels/Test
 #############  #############  #############
 
 echo creating dir $baseTrainResultPath$resultPathTrain
+mkdir $baseTrainResultPath$resultFolderName
 mkdir $baseTrainResultPath$resultPathTrain
 
 echo " "
@@ -75,6 +77,7 @@ echo " "
 
 echo creating dir $baseTestResultPath$resultPathTest
 echo " "
+mkdir $baseTestResultPath$resultFolderName
 mkdir $baseTestResultPath$resultPathTest
 
 echo " "
