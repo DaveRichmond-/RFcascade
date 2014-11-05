@@ -385,19 +385,25 @@ public:
                                             ArrayVector< MultiArray<2, float> > & rfFeaturesArray,
                                             ArrayVector< MultiArray<2, UInt8> > & rfLabelsArray,
                                             Shape2 & xy_dim,
+                                            const std::vector<int> & randVector,
                                             int num_levels = 1,
-                                            int num_images = 0,
                                             int sampling = 1)
 	{
         // get all names:
-		ArrayVector<std::string> allImageNames = imagetools::getAllFilenames(imgPath);
-		ArrayVector<std::string> allLabelNames = imagetools::getAllFilenames(labelPath);
+        ArrayVector<std::string> allImageNamesOrdered = imagetools::getAllFilenames(imgPath);
+        ArrayVector<std::string> allLabelNamesOrdered = imagetools::getAllFilenames(labelPath);
 
-        if (num_images)
-        {
-            allImageNames.resize(num_images);
-            allLabelNames.resize(num_images);
+        int num_images=randVector.size();
+
+        // randomize order of names:
+        ArrayVector<std::string> allImageNames(num_images);
+        ArrayVector<std::string> allLabelNames(num_images);
+
+        for (int i=0; i<num_images; i++) {
+            allImageNames[i]=allImageNamesOrdered[randVector[i]];
+            allLabelNames[i]=allLabelNamesOrdered[randVector[i]];
         }
+
 		int numNames = allImageNames.size();
 		int chunkSize = numNames / num_levels;
 
@@ -458,16 +464,20 @@ public:
     static void getArrayOfRawImages(std::string imgPath,
                                     ArrayVector< MultiArray<2, float> > & rfRawImagesArray,
                                     Shape2 & xy_dim,
-                                    int num_levels = 1,
-                                    int num_images = 0)
+                                    const std::vector<int> & randVector,
+                                    int num_levels = 1)
     {
         // get all names:
-        ArrayVector<std::string> allImageNames = imagetools::getAllFilenames(imgPath);
+        ArrayVector<std::string> allImageNamesOrdered = imagetools::getAllFilenames(imgPath);
 
-        if (num_images)
-        {
-            allImageNames.resize(num_images);
+        int num_images=randVector.size();
+
+        // randomize order of names:
+        ArrayVector<std::string> allImageNames(num_images);
+        for (int i=0; i<num_images; i++) {
+            allImageNames[i]=allImageNamesOrdered[randVector[i]];
         }
+
         int numNames = allImageNames.size();
         int chunkSize = numNames / num_levels;
 

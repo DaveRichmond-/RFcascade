@@ -27,7 +27,7 @@ int run_main(int argc, const char **argv)
 {
     if (argc<23) {
 
-        std::cout << "RF_Cascade_wMBS_Learn needs 20 arguments. Usage: " << std::endl;
+        std::cout << "RF_Cascade_wMBS_Learn needs 22 arguments. Usage: " << std::endl;
         std::cout << "RF_Cascade_wMBS_Learn  <baseInputPath> <baseOutputPath> <rawPath> <featurePath> <labelPath> <randomForestPath> ";
         std::cout << "useExistingForest numImages numLevels reSampleBy numClasses numTrees featureMix_features featureMix_offsetFeatures featureMix_offsetDifferenceFeatures ";
         std::cout << "maxOffset treeDepth splitNodeSize howToSmoothProbMaps sampleFraction numAAMsteps useAllImagesAtEveryLevel" << std::endl;
@@ -76,19 +76,26 @@ int run_main(int argc, const char **argv)
     int sampling = atoi(argv[10]);
 
     bool useAllImagesAtEveryLevel = (atoi(argv[22])>0);
-    bool rfFeaturesArraySize = useAllImagesAtEveryLevel?1:num_levels;
+
+    // build random order in which to use images:
+    std::srand ( unsigned ( std::time(0) ) );
+    std::vector<int> imgNumVector;
+    for (int i=0; i<num_images; ++i) imgNumVector.push_back(i); // 0 1 2 3 4 5 6 7 8 9 ...
+    std::random_shuffle ( imgNumVector.begin(), imgNumVector.end() );
 
     ArrayVector< MultiArray<2, ImageType> > rfFeaturesArray;
     ArrayVector< MultiArray<2, LabelType> > rfLabelsArray;
     Shape2 xy_dim(0,0);
 
-    imagetools::getArrayOfFeaturesAndLabels(featPath, labelPath, rfFeaturesArray, rfLabelsArray, xy_dim, rfFeaturesArraySize, num_images, sampling);
-
-    // re-use above strategy to get grayscale images.  need some dummy variables.
     ArrayVector< MultiArray<2, ImageType> > rfRawImageArray;
     Shape2 raw_dim(0,0);
 
-    imagetools::getArrayOfRawImages(rawPath, rfRawImageArray, raw_dim, rfFeaturesArraySize, num_images);
+    bool rfFeaturesArraySize = useAllImagesAtEveryLevel?1:num_levels;
+    if (useAllImagesAtEveryLevel) {
+        imagetools::getArrayOfFeaturesAndLabels(featPath, labelPath, rfFeaturesArray, rfLabelsArray, xy_dim, imgNumVector, rfFeaturesArraySize, sampling);
+        // re-use above strategy to get grayscale images.  need some dummy variables.
+        imagetools::getArrayOfRawImages(rawPath, rfRawImageArray, raw_dim, imgNumVector, rfFeaturesArraySize);
+    }
 
     std::cout << "\n" << "image import succeeded!" << std::endl;
 
@@ -173,7 +180,20 @@ int run_main(int argc, const char **argv)
         for (int i=rf_cascade.size(); i<num_levels; ++i)
         {
 
-            int featureArrayIdx = useAllImagesAtEveryLevel?0:i;
+            int featureArrayIdx = 0; //useAllImagesAtEveryLevel?0:i;
+
+            // load images on demand:
+            if (!useAllImagesAtEveryLevel) {
+                // pick the right entries from randVector:
+                int a=i*num_images/num_levels;
+                int b=(i+1)*num_images/num_levels;
+
+                std::vector<int> imgNumVectorAtLevel(&imgNumVector[a],&imgNumVector[b]);
+
+                imagetools::getArrayOfFeaturesAndLabels(featPath, labelPath, rfFeaturesArray, rfLabelsArray, xy_dim, imgNumVectorAtLevel, rfFeaturesArraySize, sampling);
+                // re-use above strategy to get grayscale images.  need some dummy variables.
+                imagetools::getArrayOfRawImages(rawPath, rfRawImageArray, raw_dim, imgNumVectorAtLevel, rfFeaturesArraySize);
+            }
 
             // some useful constants
             int num_samples = rfFeaturesArray[featureArrayIdx].size(0);

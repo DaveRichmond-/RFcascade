@@ -69,7 +69,10 @@ int run_main(int argc, const char **argv)
     ArrayVector< MultiArray<2, UInt8> > rfLabelsArray;
     Shape2 xy_dim(0,0);
 
-    imagetools::getArrayOfFeaturesAndLabels(featPath, labelPath, rfFeaturesArray, rfLabelsArray, xy_dim, 1, num_images, sampling);
+    std::vector<int> imgNumVector;
+    for (int i=0; i<num_images; ++i) imgNumVector.push_back(i); // 0 1 2 3 4 5 6 7 8 9
+
+    imagetools::getArrayOfFeaturesAndLabels(featPath, labelPath, rfFeaturesArray, rfLabelsArray, xy_dim, imgNumVector, 1, sampling);
 
     int num_samples = rfFeaturesArray[0].size(0);
     num_images = num_samples / (xy_dim[0]*xy_dim[1]);
@@ -79,7 +82,7 @@ int run_main(int argc, const char **argv)
     ArrayVector< MultiArray<2, ImageType> > rfRawImageArray;
     Shape2 raw_dim(0,0);
 
-    imagetools::getArrayOfRawImages(rawPath, rfRawImageArray, raw_dim, 1, num_images);
+    imagetools::getArrayOfRawImages(rawPath, rfRawImageArray, raw_dim, imgNumVector, 1);
 
     std::cout << "\n" << "image import succeeded!" << std::endl;
 
