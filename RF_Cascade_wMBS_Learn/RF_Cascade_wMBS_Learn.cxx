@@ -25,6 +25,17 @@ using namespace vigra;
 
 int run_main(int argc, const char **argv)
 {
+    if (argc<21) {
+
+        std::cout << "RF_Cascade_wMBS_Learn needs 20 arguments. Usage: " << std::endl;
+        std::cout << "RF_Cascade_wMBS_Learn  <baseInputPath> <baseOutputPath> <rawPath> <featurePath> <labelPath> <randomForestPath> ";
+        std::cout << "useExistingForest numImages numLevels reSampleBy numClasses numTrees featureMix_features featureMix_offsetFeatures featureMix_offsetDifferenceFeatures ";
+        std::cout << "maxOffset treeDepth splitNodeSize howToSmoothProbMaps sampleFraction " << std::endl;
+        std::cout << "Aborting. " << std::endl;
+
+        return 0;
+
+    }
     // USER DEFINED PARAMETERS !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
 
     std::string baseInputPath = argv[1];
@@ -48,7 +59,7 @@ int run_main(int argc, const char **argv)
 
     // some user defined parameters
     double smoothing_scale = 3.0;
-    int numGDsteps = 50;
+    int numGDsteps = 5;
     float lambdaU = 4;
     float lambdaPW = 4;
     int numFits = 1;
