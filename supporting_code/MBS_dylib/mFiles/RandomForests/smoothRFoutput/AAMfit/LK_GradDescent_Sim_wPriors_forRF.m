@@ -1,4 +1,4 @@
-function [sp_final, cost] = LK_GradDescent_Sim_wPriors_forRF(raw_image, modelSegmentsAAM, q_init, p_init, L_init, q_prior, p_prior, L_prior, LKparams)
+function [sp_final, cost] = LK_GradDescent_Sim_wPriors_forRF(raw_image, modelSegmentsAAM, q_init, p_init, L_init, LKparams)
 
 %
 
@@ -25,8 +25,13 @@ reg_weights = LKparams.reg_weights;
 step_size = LKparams.step_size;
 thresh = LKparams.conv_thresh;
 
+% set priors to be initial values of parameters
+q_prior = q_init;
+p_prior = p_init;
+L_prior = L_init;
+
 % initialize
-c = sqrt(reg_weights);      % simpler to use the sqrt(reg_weight) for the math...
+c = sqrt(reg_weights(:));      % simpler to use the sqrt(reg_weight) for the math...
 
 q = NaN(size(q_init,1),num_iters);
 dq = NaN(size(q_init,1),num_iters);
@@ -178,7 +183,7 @@ for i = 1:num_iters,
 
         return
         
-    elseif i == num_iters-1,
+    elseif i == num_iters,
         
         sp_final = sp;
         

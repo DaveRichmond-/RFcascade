@@ -1,18 +1,14 @@
-function [p_init, q_init, q_init2] = initializeModelSegmentsAAM_2inits(centroids, modelCentroids, numCentroidsUsed, modelSegmentsAAM)
+function [p_init, q_init, q_init2, Offsets1, Offsets2] = initializeModelSegmentsAAM_2inits(centroids, modelCentroids, modelSegmentsAAM, numOffsets, offsetScale)
 
 % takes centroids calculated from RF output, and registers AAM instances, based on a centroid model
 % then recenter each AAM instance, so that it's centroid perfectly matches the centroid of the RF output
 
-% select somites to register to
-centroidNums = randperm(size(centroids,1));
-centroidNums = centroidNums(1:numCentroidsUsed);
-centroidNums = centroidNums(:);
 
 % read out xy coords
-x_mov = modelCentroids(centroidNums,1);
-y_mov = modelCentroids(centroidNums,2);
-x_fix = centroids(centroidNums,1);
-y_fix = centroids(centroidNums,2);
+x_mov = modelCentroids(:,1);
+y_mov = modelCentroids(:,2);
+x_fix = centroids(:,1);
+y_fix = centroids(:,2);
 
 % calc warp from centroids
 tform = fitgeotrans([x_mov, y_mov], [x_fix, y_fix], 'Similarity');
@@ -73,3 +69,10 @@ end
 % figure,
 % imagesc(max(mask,[],3))
 % pause(3)
+
+% calculate Offsets along the line between neighboring segments, using registered model
+[Xmodel, Ymodel] = tformfwd(tform, modelCentroids(:,1)', modelCentroids(:,2)');
+registeredModelCentroids = [Xmodel(:), Ymodel(:)];
+Offsets1 = lineOffsets(registeredModelCentroids, numOffsets, offsetScale);
+% ... using centroids of RF output
+Offsets2 = lineOffsets(centroids, numOffsets, offsetScale);

@@ -1,4 +1,4 @@
-function [smoothProbMap] = MBS_AAM_gS(grayImage, grayImageShape, probMap, probMapShape, sampling, numGDsteps, lambda, varargin)
+function [smoothProbMap] = MBS_AAM_gS(grayImage, grayImageShape, probMap, probMapShape, sampling, numGDsteps, priorStrength, numOffsets, offsetScale, lambda)
 
 % function to export in shared library for use by c++ code
 % does model based smoothing using AAM
@@ -6,11 +6,14 @@ function [smoothProbMap] = MBS_AAM_gS(grayImage, grayImageShape, probMap, probMa
 %
 display('launched MBS_AAM_gS')
 
-if nargin >= 9
-    output_flag = varargin{1};
-else
-    output_flag = 0;
-end
+% hard-code output flag for now, because varargin doesn't seem to work with calls to shared library
+output_flag = 0;
+
+% if nargin >= 10
+%     output_flag = varargin{1};
+% else
+%     output_flag = 0;
+% end
 
 % prep ----------------------------------->
 
@@ -46,7 +49,7 @@ end
 
 % initialize
 
-[segmentsFit, costs] = fitAAMtoProbMap_gridSample(grayImage, probMap, modelCentroids, modelSegmentsAAM, numGDsteps, output_flag);
+[segmentsFit, costs] = fitAAMtoProbMap_gridSample(grayImage, probMap, modelCentroids, modelSegmentsAAM, numGDsteps, priorStrength, numOffsets, offsetScale, output_flag);
 
 [smoothProbMap] = probMapFromFits(probMap, segmentsFit, costs, lambda);
 

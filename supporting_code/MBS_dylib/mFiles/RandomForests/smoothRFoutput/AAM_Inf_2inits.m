@@ -1,4 +1,4 @@
-function [unaryFactors, pairwiseFactors, fitMasks] = AAM_Inf_2inits(grayImage, grayImageShape, probMap, probMapShape, sampling, numGDsteps, lambdaU, lambdaPW, varargin)
+function [unaryFactors, pairwiseFactors, fitMasks] = AAM_Inf_2inits(grayImage, grayImageShape, probMap, probMapShape, sampling, numGDsteps, priorStrength, numOffsets, offsetScale, lambdaU, lambdaPW)
 
 % function to export in shared library for use by c++ code
 % does model based smoothing using AAM
@@ -6,11 +6,14 @@ function [unaryFactors, pairwiseFactors, fitMasks] = AAM_Inf_2inits(grayImage, g
 %
 display('launched AAM_Inf_2inits')
 
-if nargin >= 9
-    output_flag = varargin{1};
-else
-    output_flag = 0;
-end
+% hard-code output flag for now, because varargin doesn't seem to work with calls to shared library
+output_flag = 0;
+
+% if nargin >= 11
+%     output_flag = varargin{1};
+% else
+%     output_flag = 0;
+% end
 
 % prep ----------------------------------->
 
@@ -45,7 +48,7 @@ end
 
 % generate model fits ----------------------------------->
 
-[segmentsFit, costs] = fitAAMtoProbMap_gridSample_2inits(grayImage, probMap, modelCentroids, modelSegmentsAAM, numGDsteps, output_flag);
+[segmentsFit, costs] = fitAAMtoProbMap_gridSample_2inits(grayImage, probMap, modelCentroids, modelSegmentsAAM, numGDsteps, priorStrength, numOffsets, offsetScale, output_flag);
 
 [unaryFactors, pairwiseFactors, fitMasks] = factorsFromFits(segmentsFit, costs, lambdaU, lambdaPW, probMap, centroidStats);
 
