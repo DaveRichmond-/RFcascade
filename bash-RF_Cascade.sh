@@ -58,7 +58,7 @@ rfName=rf_cascade
 
 ############# Eval: #############
 
-gtPath=/Users/kainmull/Data/Somites/Labels/Test
+gtPath=$baseTestInputPath$labelPathTest
 
 
 #############  #############  #############
