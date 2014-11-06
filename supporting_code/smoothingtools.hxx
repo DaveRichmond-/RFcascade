@@ -59,7 +59,7 @@ public:
         // convert parameters to Matlab types
         mwArray mwPriorStrength(1, priorStrength.size(), mxDOUBLE_CLASS);
         for (int i = 0; i < priorStrength.size(); ++i)
-            mwPriorStrength(i) = mwArray(priorStrength(i));
+            mwPriorStrength(i+1) = mwArray(priorStrength(i));
 
         mwArray mwNumOffsets;
         mwNumOffsets = mwArray(numOffsets);
@@ -113,7 +113,7 @@ public:
         // convert parameters to Matlab types
         mwArray mwPriorStrength(1, priorStrength.size(), mxDOUBLE_CLASS);
         for (int i = 0; i < priorStrength.size(); ++i)
-            mwPriorStrength(i) = mwArray(priorStrength(i));
+            mwPriorStrength(i+1) = mwArray(priorStrength(i));
 
         mwArray mwNumOffsets;
         mwNumOffsets = mwArray(numOffsets);
@@ -192,7 +192,7 @@ public:
         // convert parameters to Matlab types
         mwArray mwPriorStrength(1, priorStrength.size(), mxDOUBLE_CLASS);
         for (int i = 0; i < priorStrength.size(); ++i)
-            mwPriorStrength(i) = mwArray(priorStrength(i));
+            mwPriorStrength(i+1) = mwArray(priorStrength(i));
 
         mwArray mwNumOffsets;
         mwNumOffsets = mwArray(numOffsets);

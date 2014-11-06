@@ -20,11 +20,11 @@ for i = 1:size(Offsets,1),
     end
 
     numEachDir = (numOffsets-1)/2;
-    midIndx = (numOffsets+1)/2;
+    midIndx    = (numOffsets+1)/2;
 %     Offsets(i,:,midIndx) = 0;
     for j = 1:numEachDir,
-        Offsets(i,:,midIndx - j) = (maxU/numEachDir)*j;
-        Offsets(i,:,midIndx + j) = (maxD/numEachDir)*j;
+        Offsets(i,:,midIndx - j) = (double(maxU)/double(numEachDir))*double(j);
+        Offsets(i,:,midIndx + j) = (double(maxD)/double(numEachDir))*double(j);
     end
     
 end

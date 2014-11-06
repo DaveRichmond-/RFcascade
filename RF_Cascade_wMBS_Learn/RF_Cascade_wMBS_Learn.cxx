@@ -61,14 +61,14 @@ int run_main(int argc, const char **argv)
     double smoothing_scale = 3.0;
     int numGDsteps = atoi(argv[21]);
     MultiArray<1, double> priorStrength(6);
-    priorStrength(1) = atoi(argv[23]);
-    priorStrength(2) = atoi(argv[24]);
-    priorStrength(3) = atoi(argv[25]);
-    priorStrength(4) = atoi(argv[26]);
-    priorStrength(5) = atoi(argv[27]);
-    priorStrength(6) = atoi(argv[28]);
+    priorStrength(1) = atof(argv[23]);
+    priorStrength(2) = atof(argv[24]);
+    priorStrength(3) = atof(argv[25]);
+    priorStrength(4) = atof(argv[26]);
+    priorStrength(5) = atof(argv[27]);
+    priorStrength(6) = atof(argv[28]);
     int numOffsets = atoi(argv[29]);
-    double offsetScale = atoi(argv[30]);
+    double offsetScale = atof(argv[30]);
 
     float lambdaU = 4;
     float lambdaPW = 4;
