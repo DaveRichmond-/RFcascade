@@ -55,6 +55,9 @@ gtPath=/Users/kainmull/Data/Somites/Labels/Test
 
 #############  #############  #############
 
+logfile=$baseTrainResultPath$resultPathTrain/log.txt
+exec > $logfile 2>&1
+
 echo creating dir $baseTrainResultPath$resultPathTrain
 mkdir $baseTrainResultPath$resultFolderName
 mkdir $baseTrainResultPath$resultPathTrain
@@ -74,6 +77,9 @@ echo ./RF_Cascade_wMBS_Learn-build/RF_Cascade_wMBS_Learn $baseTrainInputPath $ba
 echo " "
 
 ./RF_Cascade_wMBS_Learn-build/RF_Cascade_wMBS_Learn $baseTrainInputPath $baseTrainResultPath $rawPathTrain $featurePathTrain $labelPathTrain $resultPathTrain $useExistingForest $numImagesTrain $numLevels $reSampleBy $numClasses $numTrees $featureMix_features $featureMix_offsetFeatures $featureMix_offsetDifferenceFeatures $maxOffset $treeDepth $splitNodeSize $howToSmoothProbMaps $sampleFraction $numAAMsteps $useAllImagesAtEveryLevel
+
+logfile=$baseTestResultPath$resultPathTest/log.txt
+exec > $logfile 2>&1
 
 echo creating dir $baseTestResultPath$resultPathTest
 echo " "
