@@ -48,10 +48,17 @@ int run_main(int argc, const char **argv)
     // some user defined parameters
     double smoothing_scale = 3.0;
     int numGDsteps = atoi(argv[11]);
+    MultiArray<1, double> priorStrength(6);
+    priorStrength(1) = atoi(argv[12]);
+    priorStrength(2) = atoi(argv[13]);
+    priorStrength(3) = atoi(argv[14]);
+    priorStrength(4) = atoi(argv[15]);
+    priorStrength(5) = atoi(argv[16]);
+    priorStrength(6) = atoi(argv[17]);
+    int numOffsets = atoi(argv[18]);
+    double offsetScale = atoi(argv[19]);
     float lambdaU = 4;
     float lambdaPW = 4;
-    int numFits = 1;
-    int numCentroidsUsed = 21;
 
     // END USER DEFINED PARAMETERS !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
 
@@ -192,13 +199,13 @@ int run_main(int argc, const char **argv)
                 if ( smooth_flag == 0 )
                     smoothProbArray[k].init(0.0);
                 else if ( smooth_flag  == 1 )
-                    smoothingtools::AAM_MBS<ImageType>(probArray[k], rawImageArray[k], smoothProbArray[k], sampling, numGDsteps, lambdaU);
+                    smoothingtools::AAM_MBS<ImageType>(probArray[k], rawImageArray[k], smoothProbArray[k], priorStrength, numOffsets, offsetScale, sampling, numGDsteps, lambdaU);
                 else if ( smooth_flag == 2 ){
                     MultiArray<2, int> MAPLabels;     // for now, just throw away the MAPLabels
-                    smoothingtools::AAM_Inference<ImageType>(probArray[k], rawImageArray[k], smoothProbArray[k], MAPLabels, sampling, numGDsteps, lambdaU, lambdaPW);
+                    smoothingtools::AAM_Inference<ImageType>(probArray[k], rawImageArray[k], smoothProbArray[k], MAPLabels, priorStrength, numOffsets, offsetScale, sampling, numGDsteps, lambdaU, lambdaPW);
                 } else if ( smooth_flag == 3 ){
                     MultiArray<2, int> MAPLabels;     // for now, just throw away the MAPLabels
-                    smoothingtools::AAM_Inference_2inits<ImageType>(probArray[k], rawImageArray[k], smoothProbArray[k], MAPLabels, sampling, numGDsteps, lambdaU, lambdaPW);
+                    smoothingtools::AAM_Inference_2inits<ImageType>(probArray[k], rawImageArray[k], smoothProbArray[k], MAPLabels, priorStrength, numOffsets, offsetScale, sampling, numGDsteps, lambdaU, lambdaPW);
                 }
             }
             // toc
