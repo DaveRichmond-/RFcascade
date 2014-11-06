@@ -34,6 +34,14 @@ reSampleBy=3
 numClasses=22
 maxOffset=128
 howToSmoothProbMaps=3
+priorA1=0.001
+priorA2=0.001
+priorX=0.0001
+priorY=0.0001
+priorShape=1
+priorAppearance=0
+numOffsets=5
+offsetScale=1.0
 
 ############# Testing: #############
 
@@ -73,10 +81,10 @@ export DYLD_LIBRARY_PATH=./supporting_code/MBS_dylib
 echo " "
 echo running Learn
 echo " "
-echo ./RF_Cascade_wMBS_Learn-build/RF_Cascade_wMBS_Learn $baseTrainInputPath $baseTrainResultPath $rawPathTrain $featurePathTrain $labelPathTrain $resultPathTrain $useExistingForest $numImagesTrain $numLevels $reSampleBy $numClasses $numTrees $featureMix_features $featureMix_offsetFeatures $featureMix_offsetDifferenceFeatures $maxOffset $treeDepth $splitNodeSize $howToSmoothProbMaps $sampleFraction $numAAMsteps $useAllImagesAtEveryLevel
+echo ./RF_Cascade_wMBS_Learn-build/RF_Cascade_wMBS_Learn $baseTrainInputPath $baseTrainResultPath $rawPathTrain $featurePathTrain $labelPathTrain $resultPathTrain $useExistingForest $numImagesTrain $numLevels $reSampleBy $numClasses $numTrees $featureMix_features $featureMix_offsetFeatures $featureMix_offsetDifferenceFeatures $maxOffset $treeDepth $splitNodeSize $howToSmoothProbMaps $sampleFraction $numAAMsteps $useAllImagesAtEveryLevel $priorA1 $priorA2 $priorX $priorY $priorShape $priorAppearance $numOffsets $offsetScale
 echo " "
 
-./RF_Cascade_wMBS_Learn-build/RF_Cascade_wMBS_Learn $baseTrainInputPath $baseTrainResultPath $rawPathTrain $featurePathTrain $labelPathTrain $resultPathTrain $useExistingForest $numImagesTrain $numLevels $reSampleBy $numClasses $numTrees $featureMix_features $featureMix_offsetFeatures $featureMix_offsetDifferenceFeatures $maxOffset $treeDepth $splitNodeSize $howToSmoothProbMaps $sampleFraction $numAAMsteps $useAllImagesAtEveryLevel
+./RF_Cascade_wMBS_Learn-build/RF_Cascade_wMBS_Learn $baseTrainInputPath $baseTrainResultPath $rawPathTrain $featurePathTrain $labelPathTrain $resultPathTrain $useExistingForest $numImagesTrain $numLevels $reSampleBy $numClasses $numTrees $featureMix_features $featureMix_offsetFeatures $featureMix_offsetDifferenceFeatures $maxOffset $treeDepth $splitNodeSize $howToSmoothProbMaps $sampleFraction $numAAMsteps $useAllImagesAtEveryLevel $priorA1 $priorA2 $priorX $priorY $priorShape $priorAppearance $numOffsets $offsetScale
 
 logfile=$baseTestResultPath$resultPathTest/log.txt
 exec > $logfile 2>&1
@@ -99,10 +107,10 @@ cp $baseTrainResultPath$resultPathTrain/$rfName $baseTestResultPath/$resultPathT
 echo " "
 echo running Predict
 echo " "
-echo ./RF_Cascade_wMBS_Predict-build/RF_Cascade_wMBS_Predict $baseTestInputPath $baseTestResultPath $rawPathTest $featurePathTest $labelPathTest $resultPathTest $rfName $numImagesTest $resampleByTest $howToSmoothProbMaps $numAAMsteps
+echo ./RF_Cascade_wMBS_Predict-build/RF_Cascade_wMBS_Predict $baseTestInputPath $baseTestResultPath $rawPathTest $featurePathTest $labelPathTest $resultPathTest $rfName $numImagesTest $resampleByTest $howToSmoothProbMaps $numAAMsteps $priorA1 $priorA2 $priorX $priorY $priorShape $priorAppearance $numOffsets $offsetScale
 echo " "
 
-./RF_Cascade_wMBS_Predict-build/RF_Cascade_wMBS_Predict $baseTestInputPath $baseTestResultPath $rawPathTest $featurePathTest $labelPathTest $resultPathTest $rfName $numImagesTest $resampleByTest $howToSmoothProbMaps $numAAMsteps
+./RF_Cascade_wMBS_Predict-build/RF_Cascade_wMBS_Predict $baseTestInputPath $baseTestResultPath $rawPathTest $featurePathTest $labelPathTest $resultPathTest $rfName $numImagesTest $resampleByTest $howToSmoothProbMaps $numAAMsteps $priorA1 $priorA2 $priorX $priorY $priorShape $priorAppearance $numOffsets $offsetScale
 
 echo " "
 echo running Dice
