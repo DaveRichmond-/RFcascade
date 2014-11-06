@@ -18,6 +18,7 @@ class smoothingtools
 {
 public:
 
+    /*
     template <class T1>
     static void rigidMBS(const MultiArray<3, T1> & probStack, MultiArray<3, T1> & smoothProbStack, int numFits = 10, int numCentroidsUsed = 21, int sampling = 1)
     {
@@ -49,12 +50,23 @@ public:
         smoothProbStack.reshape(Shape3(probStack.size(0), probStack.size(1), probStack.size(2)));
         matlabToVigraArray(mwSmoothProbs, smoothProbStack);
     }
+    */
 
     template <class T1>
-    static void AAM_MBS(const MultiArray<3, T1> & probStack, const MultiArray<3, T1> & rawImage, MultiArray<3, T1> & smoothProbStack, int sampling = 1, int numGDsteps = 50, float lambda = 2)
+    static void AAM_MBS(const MultiArray<3, T1> & probStack, const MultiArray<3, T1> & rawImage, MultiArray<3, T1> & smoothProbStack, MultiArray<1, double> priorStrength, int numOffsets=5, double offsetScale=1.0, int sampling=1, int numGDsteps=50, float lambda=2)
     {
 
         // convert parameters to Matlab types
+        mwArray mwPriorStrength(1, priorStrength.size(), mxDOUBLE_CLASS);
+        for (int i = 0; i < priorStrength.size(); ++i)
+            mwPriorStrength(i) = mwArray(priorStrength(i));
+
+        mwArray mwNumOffsets;
+        mwNumOffsets = mwArray(numOffsets);
+
+        mwArray mwOffsetScale(1, 1, mxDOUBLE_CLASS);
+        mwOffsetScale = mwArray(offsetScale);
+
         mwArray mwNumGDsteps;
         mwNumGDsteps = mwArray(numGDsteps);
 
@@ -82,7 +94,7 @@ public:
 
         // call MBS routine
         mwArray mwSmoothProbs(1, probStack.size(), mxSINGLE_CLASS);
-        MBS_AAM_gS(1, mwSmoothProbs, mwRawImage, mwRawImageShape, mwProbs, mwProbStackShape, mwSampling, mwNumGDsteps, mwLambda, mwArray(0));
+        MBS_AAM_gS(1, mwSmoothProbs, mwRawImage, mwRawImageShape, mwProbs, mwProbStackShape, mwSampling, mwNumGDsteps, mwPriorStrength, mwNumOffsets, mwOffsetScale, mwLambda);
 
         // get data out of mwArray
         smoothProbStack.reshape(Shape3(probStack.size(0), probStack.size(1), probStack.size(2)));
@@ -90,14 +102,24 @@ public:
     }
 
     template <class T1>
-    static void AAM_Inference(const MultiArray<3, T1> & probStack, const MultiArray<3, T1> & rawImage, MultiArray<3, T1> & margProbStack, MultiArray<2, int> & MAPLabels, int sampling = 1, int numGDsteps = 50, float lambdaU = 4, float lambdaPW = 4)
+    static void AAM_Inference(const MultiArray<3, T1> & probStack, const MultiArray<3, T1> & rawImage, MultiArray<3, T1> & margProbStack, MultiArray<2, int> & MAPLabels,  MultiArray<1, double> priorStrength, int numOffsets=5, double offsetScale=1.0, int sampling=1, int numGDsteps=50, float lambdaU=4, float lambdaPW=4)
     {
 
         // useful constants
-        int numFits = 9;                                                        // NOTE: THIS PARAMETERS IS ACTUALLY SET BY THE MATLAB FUNCTION.  FOR "GRID-SEARCH" NUMFITS = 9.  IN FUTURE, NUMFITS = 18 TO TAKE INTO ACCOUNT 2 TYPES OF INITIALIZATION
         int num_classes = probStack.size(2);
 
         // convert to Matlab types ------------------------------------------------------------------------------>
+
+        // convert parameters to Matlab types
+        mwArray mwPriorStrength(1, priorStrength.size(), mxDOUBLE_CLASS);
+        for (int i = 0; i < priorStrength.size(); ++i)
+            mwPriorStrength(i) = mwArray(priorStrength(i));
+
+        mwArray mwNumOffsets;
+        mwNumOffsets = mwArray(numOffsets);
+
+        mwArray mwOffsetScale(1, 1, mxDOUBLE_CLASS);
+        mwOffsetScale = mwArray(offsetScale);
 
         mwArray mwSampling;
         mwSampling = mwArray(sampling);
@@ -128,24 +150,24 @@ public:
         vigraToMatlab_Array<T1>(rawImage, mwRawImage);
 
         // initialize arrays for output
-        mwArray mwUnaryFactors(1, (num_classes-1)*numFits, mxDOUBLE_CLASS);
-        mwArray mwPairwiseFactors(1, numFits*numFits*(num_classes-1), mxDOUBLE_CLASS);
-        mwArray mwFitMasks(1, probStack.size(0)*probStack.size(1)*(num_classes-1)*numFits, mxINT8_CLASS);
+        mwArray mwUnaryFactors(1, (num_classes-1)*numOffsets, mxDOUBLE_CLASS);
+        mwArray mwPairwiseFactors(1, numOffsets*numOffsets*(num_classes-1), mxDOUBLE_CLASS);
+        mwArray mwFitMasks(1, probStack.size(0)*probStack.size(1)*(num_classes-1)*numOffsets, mxINT8_CLASS);
 
         // call MBS routine ----------------------------------------------------------------------------------------------->
 
-        MBS_AAM_forINF(3, mwUnaryFactors, mwPairwiseFactors, mwFitMasks, mwRawImage, mwRawImageShape, mwProbs, mwProbStackShape, mwSampling, mwNumGDsteps, mwLambdaU, mwLambdaPW, mwArray(0));
+        MBS_AAM_forINF(3, mwUnaryFactors, mwPairwiseFactors, mwFitMasks, mwRawImage, mwRawImageShape, mwProbs, mwProbStackShape, mwSampling, mwNumGDsteps, mwPriorStrength, mwNumOffsets, mwOffsetScale, mwLambdaU, mwLambdaPW);
 
         // convert from Matlab types ---------------------------------------------------------------------------->
 
         // get data out of mwArrays
-        MultiArray<3, int> fitMasks(Shape3(probStack.size(0), probStack.size(1), (num_classes-1)*numFits));
+        MultiArray<3, int> fitMasks(Shape3(probStack.size(0), probStack.size(1), (num_classes-1)*numOffsets));
         matlabToVigra_Array<int>(mwFitMasks, fitMasks);
 
-        MultiArray<2, double> unaryFactors(Shape2(num_classes-1,numFits));
+        MultiArray<2, double> unaryFactors(Shape2(num_classes-1, numOffsets));
         matlabToVigra_UnaryFactors(mwUnaryFactors, unaryFactors);
 
-        MultiArray<3, double> pairwiseFactors(Shape3(numFits, numFits, num_classes-1));
+        MultiArray<3, double> pairwiseFactors(Shape3(numOffsets, numOffsets, num_classes-1));
         matlabToVigra_PairwiseFactors(mwPairwiseFactors, pairwiseFactors);
 
         // calc marginal and MAP solutions, and return corresponding probability and label images ---------------------------------------------------------------------------->
@@ -159,14 +181,24 @@ public:
     }
 
     template <class T1>
-    static void AAM_Inference_2inits(const MultiArray<3, T1> & probStack, const MultiArray<3, T1> & rawImage, MultiArray<3, T1> & margProbStack, MultiArray<2, int> & MAPLabels, int sampling = 1, int numGDsteps = 50, float lambdaU = 4, float lambdaPW = 4)
+    static void AAM_Inference_2inits(const MultiArray<3, T1> & probStack, const MultiArray<3, T1> & rawImage, MultiArray<3, T1> & margProbStack, MultiArray<2, int> & MAPLabels, MultiArray<1, double> priorStrength, int numOffsets=5, double offsetScale=1.0, int sampling=1, int numGDsteps=50, float lambdaU=4, float lambdaPW=4)
     {
 
         // useful constants
-        int numFits = 18;                                                        // NOTE: THIS PARAMETERS IS ACTUALLY SET BY THE MATLAB FUNCTION.  FOR "GRID-SEARCH" NUMFITS = 9.  IN FUTURE, NUMFITS = 18 TO TAKE INTO ACCOUNT 2 TYPES OF INITIALIZATION
         int num_classes = probStack.size(2);
 
         // convert to Matlab types ------------------------------------------------------------------------------>
+
+        // convert parameters to Matlab types
+        mwArray mwPriorStrength(1, priorStrength.size(), mxDOUBLE_CLASS);
+        for (int i = 0; i < priorStrength.size(); ++i)
+            mwPriorStrength(i) = mwArray(priorStrength(i));
+
+        mwArray mwNumOffsets;
+        mwNumOffsets = mwArray(numOffsets);
+
+        mwArray mwOffsetScale(1, 1, mxDOUBLE_CLASS);
+        mwOffsetScale = mwArray(offsetScale);
 
         mwArray mwSampling;
         mwSampling = mwArray(sampling);
@@ -197,24 +229,24 @@ public:
         vigraToMatlab_Array<T1>(rawImage, mwRawImage);
 
         // initialize arrays for output
-        mwArray mwUnaryFactors(1, (num_classes-1)*numFits, mxDOUBLE_CLASS);
-        mwArray mwPairwiseFactors(1, numFits*numFits*(num_classes-1), mxDOUBLE_CLASS);
-        mwArray mwFitMasks(1, probStack.size(0)*probStack.size(1)*(num_classes-1)*numFits, mxINT8_CLASS);
+        mwArray mwUnaryFactors(1, (num_classes-1)*2*numOffsets, mxDOUBLE_CLASS);
+        mwArray mwPairwiseFactors(1, 4*numOffsets*numOffsets*(num_classes-1), mxDOUBLE_CLASS);
+        mwArray mwFitMasks(1, probStack.size(0)*probStack.size(1)*(num_classes-1)*2*numOffsets, mxINT8_CLASS);
 
         // call MBS routine ----------------------------------------------------------------------------------------------->
 
-        AAM_Inf_2inits(3, mwUnaryFactors, mwPairwiseFactors, mwFitMasks, mwRawImage, mwRawImageShape, mwProbs, mwProbStackShape, mwSampling, mwNumGDsteps, mwLambdaU, mwLambdaPW, mwArray(0));
+        AAM_Inf_2inits(3, mwUnaryFactors, mwPairwiseFactors, mwFitMasks, mwRawImage, mwRawImageShape, mwProbs, mwProbStackShape, mwSampling, mwNumGDsteps, mwPriorStrength, mwNumOffsets, mwOffsetScale, mwLambdaU, mwLambdaPW);
 
         // convert from Matlab types ---------------------------------------------------------------------------->
 
         // get data out of mwArrays
-        MultiArray<3, int> fitMasks(Shape3(probStack.size(0), probStack.size(1), (num_classes-1)*numFits));
+        MultiArray<3, int> fitMasks(Shape3(probStack.size(0), probStack.size(1), (num_classes-1)*2*numOffsets));
         matlabToVigra_Array<int>(mwFitMasks, fitMasks);
 
-        MultiArray<2, double> unaryFactors(Shape2(num_classes-1,numFits));
+        MultiArray<2, double> unaryFactors(Shape2(num_classes-1, 2*numOffsets));
         matlabToVigra_UnaryFactors(mwUnaryFactors, unaryFactors);
 
-        MultiArray<3, double> pairwiseFactors(Shape3(numFits, numFits, num_classes-1));
+        MultiArray<3, double> pairwiseFactors(Shape3(2*numOffsets, 2*numOffsets, num_classes-1));
         matlabToVigra_PairwiseFactors(mwPairwiseFactors, pairwiseFactors);
 
         // calc marginal and MAP solutions, and return corresponding probability and label images ---------------------------------------------------------------------------->
