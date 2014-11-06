@@ -1,4 +1,4 @@
-function [xvec, xbar, D] = normalize_shape_vectors(xvec, mean_indx);
+function [xvec, xbar, D] = normalize_shape_vectors(xvec, mean_indx)
 
 %
 

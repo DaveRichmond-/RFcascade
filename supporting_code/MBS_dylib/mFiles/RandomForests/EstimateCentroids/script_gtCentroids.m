@@ -1,3 +1,5 @@
+% comment out old approaches.  now use the approach of running meanShift.
+%{
 clear all,
 
 fname = 'GT_labelling.mat';
@@ -93,18 +95,29 @@ modelCentroids = table(:,2:3) + ones(size(table,1),2);
 
 save label_registered22_centroids.mat modelCentroids
 
-%% THIRD OPTION - CALCULATE CENTROIDS AS COM FROM LABEL IMAGES.  SHOULD BE TRUER TO WHAT IS ESTIMATED FROM RF OUTPUT.
+%}
+
+%% CALCULATE CENTROIDS AS COM FROM LABEL IMAGES.  SHOULD BE TRUER TO WHAT IS ESTIMATED FROM RF OUTPUT.
+
+clear all
+
+fname_list_labels = getFileNames('/Users/richmond/Data/gtSomites/only_originals/labels', '.tif');
 
 num_classes = 22;
-modelImage = imread('/Users/richmond/Data/Somites/ModelForSmoothing/makeAAMmodel/label_registered22.tif');
-binSize = floor(size(modelImage,1)/4);
-lambda = floor(size(modelImage,1)/16);
-sigma = floor(size(modelImage,1)/8);
 
-for c = 1:num_classes-1,
+for i = 1:length(fname_list_labels),
     
-    c
-    mask = double(modelImage == c);
-    centroids(c,:) = findCentroidFromProbMap(mask, binSize, lambda, sigma, 1);
+    i,
+    
+    labelImage = imread(fname_list_labels{i});
+
+    binSize = floor(size(labelImage,1)/4);
+    lambda =  floor(size(labelImage,1)/16);
+    sigma =   floor(size(labelImage,1)/8);
+
+    for c = 1:num_classes-1,
+    
+        mask = double(labelImage == c);
+        modelCentroids(c,:,i) = findCentroidFromProbMap(mask, binSize, lambda, sigma, 0);
     
 end

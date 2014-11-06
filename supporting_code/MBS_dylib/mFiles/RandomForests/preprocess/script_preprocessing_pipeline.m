@@ -167,7 +167,7 @@ end
 
 % clear all
 
-%% 6.  crop
+%% 6. crop
 
 % (i) firest copy topleftPos from .Numbers into workspace
 
@@ -201,3 +201,48 @@ for i = 1:length(fname_list)
     bfsave(im, output_name);
     
 end
+
+%% NEXT STEPS ARE IN PREPARATION OF MODEL BUILDING!
+
+%% 7. store all centroids from gt data, for "on the fly" backbone model building
+
+clear all
+
+% USER PARAMETERS %%%%%%%%%%%%%%%%%%%%%%
+label_path  = '/Users/richmond/Data/gtSomites/only_originals/labels';
+output_path = '/Users/richmond/Data/gtSomites/dataForModels';
+num_classes = 22;
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+
+fname_list = getFileNames(label_path, '.tif');
+
+for i = 1:length(fname_list),
+    
+    i,
+    
+    labelImage = imread(fname_list{i});
+
+    binSize = floor(size(labelImage,1)/4);
+    lambda =  floor(size(labelImage,1)/16);
+    sigma =   floor(size(labelImage,1)/8);
+
+    for c = 1:num_classes-1,
+    
+        mask = double(labelImage == c);
+        modelCentroids(c,:,i) = findCentroidFromProbMap(mask, binSize, lambda, sigma, 0);
+    
+    end
+    
+    % visualize
+    figure
+    imagesc(labelImage)
+    colormap('jet')
+    hold on
+    plot(modelCentroids(:,1,i),modelCentroids(:,2,i),'wo')
+    
+end
+
+% save
+save(strcat(output_path,'/rigidBackboneModel.mat'),'fname_list','modelCentroids')
+
+clear all
