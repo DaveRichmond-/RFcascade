@@ -18,7 +18,7 @@ setwd(args[1])
 
 diceTable = read.csv("diceScores.txt")
 
-# boxplots
+# boxplots and parallel coord plots
 
 dir.create('Boxplot')
 cd('Boxplot')
@@ -27,33 +27,9 @@ for (i in 0:21)
 {
   dataByClass<-data.frame(diceTable[(diceTable$class == i) ,])
   nam <- paste("d", i, sep = "")
-  assign(nam, ggplot(dataByClass, aes(factor(level),diceScore)) + geom_boxplot(aes(fill = factor(level))) + ylim(0,1))
+  assign(nam, ggplot(dataByClass, aes(factor(level),diceScore)) + geom_boxplot(aes(fill = factor(level))) + geom_line(aes(group=image), colour="gray") + ylim(0,1))
 }
 
 png("boxplot.png",height=1200,width=1600)
 myPlot <- grid.arrange(d0,d1,d2,d3,d4,d5,d6,d7,d8,d9,d10,d11,d12,d13,d14,d15,d16,d17,d18,d19,d20,d21,ncol=6,nrow=4)
 dev.off()
-
-
-# parallel coord plots
-
-cd('..')
-dir.create('PCP')
-cd('PCP')
-
-# PCP
-for (i in 0:21)
-  {
-  
-  diceData<-data.frame(
-    "1stLevel"=c(diceTable[(diceTable$class == i) & (diceTable$level == 0),"diceScore"]),
-    "2ndLevel"=c(diceTable[(diceTable$class == i) & (diceTable$level == 1),"diceScore"]),
-    "3rdLevel"=c(diceTable[(diceTable$class == i) & (diceTable$level == 2),"diceScore"])
-  )
-  
-  myPlot <- parcoord(diceData, col=rainbow(length(diceData[,1])))
-  
-  print(myPlot)
-  dev.copy(png,strcat(c("class",toString(i),"_PCplot.png")))
-  dev.off()
-  }
