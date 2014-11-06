@@ -12,9 +12,9 @@ numArgs=$(echo "$*" | wc -w)
 
 if [ $numArgs -eq 0 ]
 then
-experimentID=201411061101
+    experimentID=201411061101
 else
-experimentID=$1
+    experimentID=$1
 fi
 echo $experimentID
 

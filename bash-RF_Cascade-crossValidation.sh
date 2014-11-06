@@ -171,7 +171,7 @@ do
 
 # run batch for fold
 
-sh ./$batchScript $experimentIDfold &
+sh ./$batchScript $experimentIDfold 
 
 # merge dice etc
 
