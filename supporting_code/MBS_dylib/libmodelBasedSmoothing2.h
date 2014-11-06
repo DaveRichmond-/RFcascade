@@ -1,6 +1,6 @@
 //
 // MATLAB Compiler: 5.0 (R2013b)
-// Date: Tue Nov  4 22:23:01 2014
+// Date: Thu Nov  6 11:44:47 2014
 // Arguments: "-B" "macro_default" "-v" "-W" "cpplib:libmodelBasedSmoothing2"
 // "-T" "link:lib" "modelBasedSmoothing_wARGS" "MBS_AAM_gS" "MBS_AAM_forINF"
 // "AAM_Inf_2inits" 
@@ -119,11 +119,11 @@ bool MW_CALL_CONV mlxAAM_Inf_2inits(int nlhs, mxArray *plhs[], int nrhs, mxArray
 
 extern LIB_libmodelBasedSmoothing2_CPP_API void MW_CALL_CONV modelBasedSmoothing_wARGS(int nargout, mwArray& smoothProbMap, const mwArray& probMap, const mwArray& probMapShape, const mwArray& numCentroidsUsed, const mwArray& numFits, const mwArray& sampling);
 
-extern LIB_libmodelBasedSmoothing2_CPP_API void MW_CALL_CONV MBS_AAM_gS(int nargout, mwArray& smoothProbMap, const mwArray& grayImage, const mwArray& grayImageShape, const mwArray& probMap, const mwArray& probMapShape, const mwArray& sampling, const mwArray& numGDsteps, const mwArray& lambda, const mwArray& varargin);
+extern LIB_libmodelBasedSmoothing2_CPP_API void MW_CALL_CONV MBS_AAM_gS(int nargout, mwArray& smoothProbMap, const mwArray& grayImage, const mwArray& grayImageShape, const mwArray& probMap, const mwArray& probMapShape, const mwArray& sampling, const mwArray& numGDsteps, const mwArray& priorStrength, const mwArray& numOffsets, const mwArray& offsetScale, const mwArray& lambda);
 
-extern LIB_libmodelBasedSmoothing2_CPP_API void MW_CALL_CONV MBS_AAM_forINF(int nargout, mwArray& unaryFactors, mwArray& pairwiseFactors, mwArray& fitMasks, const mwArray& grayImage, const mwArray& grayImageShape, const mwArray& probMap, const mwArray& probMapShape, const mwArray& sampling, const mwArray& numGDsteps, const mwArray& lambdaU, const mwArray& lambdaPW, const mwArray& varargin);
+extern LIB_libmodelBasedSmoothing2_CPP_API void MW_CALL_CONV MBS_AAM_forINF(int nargout, mwArray& unaryFactors, mwArray& pairwiseFactors, mwArray& fitMasks, const mwArray& grayImage, const mwArray& grayImageShape, const mwArray& probMap, const mwArray& probMapShape, const mwArray& sampling, const mwArray& numGDsteps, const mwArray& priorStrength, const mwArray& numOffsets, const mwArray& offsetScale, const mwArray& lambdaU, const mwArray& lambdaPW);
 
-extern LIB_libmodelBasedSmoothing2_CPP_API void MW_CALL_CONV AAM_Inf_2inits(int nargout, mwArray& unaryFactors, mwArray& pairwiseFactors, mwArray& fitMasks, const mwArray& grayImage, const mwArray& grayImageShape, const mwArray& probMap, const mwArray& probMapShape, const mwArray& sampling, const mwArray& numGDsteps, const mwArray& lambdaU, const mwArray& lambdaPW, const mwArray& varargin);
+extern LIB_libmodelBasedSmoothing2_CPP_API void MW_CALL_CONV AAM_Inf_2inits(int nargout, mwArray& unaryFactors, mwArray& pairwiseFactors, mwArray& fitMasks, const mwArray& grayImage, const mwArray& grayImageShape, const mwArray& probMap, const mwArray& probMapShape, const mwArray& sampling, const mwArray& numGDsteps, const mwArray& priorStrength, const mwArray& numOffsets, const mwArray& offsetScale, const mwArray& lambdaU, const mwArray& lambdaPW);
 
 #endif
 #endif

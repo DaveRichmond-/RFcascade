@@ -1,6 +1,6 @@
 //
 // MATLAB Compiler: 5.0 (R2013b)
-// Date: Tue Nov  4 22:23:01 2014
+// Date: Thu Nov  6 11:44:47 2014
 // Arguments: "-B" "macro_default" "-v" "-W" "cpplib:libmodelBasedSmoothing2"
 // "-T" "link:lib" "modelBasedSmoothing_wARGS" "MBS_AAM_gS" "MBS_AAM_forINF"
 // "AAM_Inf_2inits" 
@@ -149,10 +149,11 @@ LIB_libmodelBasedSmoothing2_CPP_API
 void MW_CALL_CONV MBS_AAM_gS(int nargout, mwArray& smoothProbMap, const mwArray& 
                              grayImage, const mwArray& grayImageShape, const mwArray& 
                              probMap, const mwArray& probMapShape, const mwArray& 
-                             sampling, const mwArray& numGDsteps, const mwArray& lambda, 
-                             const mwArray& varargin)
+                             sampling, const mwArray& numGDsteps, const mwArray& 
+                             priorStrength, const mwArray& numOffsets, const mwArray& 
+                             offsetScale, const mwArray& lambda)
 {
-  mclcppMlfFeval(_mcr_inst, "MBS_AAM_gS", nargout, 1, -8, &smoothProbMap, &grayImage, &grayImageShape, &probMap, &probMapShape, &sampling, &numGDsteps, &lambda, &varargin);
+  mclcppMlfFeval(_mcr_inst, "MBS_AAM_gS", nargout, 1, 10, &smoothProbMap, &grayImage, &grayImageShape, &probMap, &probMapShape, &sampling, &numGDsteps, &priorStrength, &numOffsets, &offsetScale, &lambda);
 }
 
 LIB_libmodelBasedSmoothing2_CPP_API 
@@ -161,10 +162,11 @@ void MW_CALL_CONV MBS_AAM_forINF(int nargout, mwArray& unaryFactors, mwArray&
                                  grayImage, const mwArray& grayImageShape, const mwArray& 
                                  probMap, const mwArray& probMapShape, const mwArray& 
                                  sampling, const mwArray& numGDsteps, const mwArray& 
-                                 lambdaU, const mwArray& lambdaPW, const mwArray& 
-                                 varargin)
+                                 priorStrength, const mwArray& numOffsets, const mwArray& 
+                                 offsetScale, const mwArray& lambdaU, const mwArray& 
+                                 lambdaPW)
 {
-  mclcppMlfFeval(_mcr_inst, "MBS_AAM_forINF", nargout, 3, -9, &unaryFactors, &pairwiseFactors, &fitMasks, &grayImage, &grayImageShape, &probMap, &probMapShape, &sampling, &numGDsteps, &lambdaU, &lambdaPW, &varargin);
+  mclcppMlfFeval(_mcr_inst, "MBS_AAM_forINF", nargout, 3, 11, &unaryFactors, &pairwiseFactors, &fitMasks, &grayImage, &grayImageShape, &probMap, &probMapShape, &sampling, &numGDsteps, &priorStrength, &numOffsets, &offsetScale, &lambdaU, &lambdaPW);
 }
 
 LIB_libmodelBasedSmoothing2_CPP_API 
@@ -173,9 +175,10 @@ void MW_CALL_CONV AAM_Inf_2inits(int nargout, mwArray& unaryFactors, mwArray&
                                  grayImage, const mwArray& grayImageShape, const mwArray& 
                                  probMap, const mwArray& probMapShape, const mwArray& 
                                  sampling, const mwArray& numGDsteps, const mwArray& 
-                                 lambdaU, const mwArray& lambdaPW, const mwArray& 
-                                 varargin)
+                                 priorStrength, const mwArray& numOffsets, const mwArray& 
+                                 offsetScale, const mwArray& lambdaU, const mwArray& 
+                                 lambdaPW)
 {
-  mclcppMlfFeval(_mcr_inst, "AAM_Inf_2inits", nargout, 3, -9, &unaryFactors, &pairwiseFactors, &fitMasks, &grayImage, &grayImageShape, &probMap, &probMapShape, &sampling, &numGDsteps, &lambdaU, &lambdaPW, &varargin);
+  mclcppMlfFeval(_mcr_inst, "AAM_Inf_2inits", nargout, 3, 11, &unaryFactors, &pairwiseFactors, &fitMasks, &grayImage, &grayImageShape, &probMap, &probMapShape, &sampling, &numGDsteps, &priorStrength, &numOffsets, &offsetScale, &lambdaU, &lambdaPW);
 }
 
