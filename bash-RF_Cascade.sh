@@ -73,12 +73,12 @@ gtPath=$baseTestInputPath$labelPathTest
 
 #############  #############  #############
 
-logfile=$baseTrainResultPath$resultPathTrain/log.txt
-exec > $logfile 2>&1
-
 echo creating dir $baseTrainResultPath$resultPathTrain
 mkdir $baseTrainResultPath$resultFolderName
 mkdir $baseTrainResultPath$resultPathTrain
+
+logfile=$baseTrainResultPath$resultPathTrain/log.txt
+exec > $logfile 2>&1
 
 echo " "
 echo copying script to learn output folder...
@@ -96,13 +96,13 @@ echo " "
 
 ./RF_Cascade_wMBS_Learn-build/RF_Cascade_wMBS_Learn $baseTrainInputPath $baseTrainResultPath $rawPathTrain $featurePathTrain $labelPathTrain $resultPathTrain $useExistingForest $numImagesTrain $numLevels $reSampleBy $numClasses $numTrees $featureMix_features $featureMix_offsetFeatures $featureMix_offsetDifferenceFeatures $maxOffset $treeDepth $splitNodeSize $howToSmoothProbMaps $sampleFraction $numAAMsteps $useAllImagesAtEveryLevel $priorA1 $priorA2 $priorX $priorY $priorShape $priorAppearance $numOffsets $offsetScale
 
-logfile=$baseTestResultPath$resultPathTest/log.txt
-exec > $logfile 2>&1
-
 echo creating dir $baseTestResultPath$resultPathTest
 echo " "
 mkdir $baseTestResultPath$resultFolderName
 mkdir $baseTestResultPath$resultPathTest
+
+logfile=$baseTestResultPath$resultPathTest/log.txt
+exec > $logfile 2>&1
 
 echo " "
 echo copying script to predict output folder...
