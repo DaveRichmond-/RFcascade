@@ -101,7 +101,7 @@ save label_registered22_centroids.mat modelCentroids
 
 clear all
 
-fname_list_labels = getFileNames('/Users/richmond/Data/gtSomites/only_originals/labels', '.tif');
+fname_list_labels = getFileNames('/Users/richmond/Data/gtSomites/dataForModels/backup/unregistered_label_images', '.tif');
 
 num_classes = 22;
 

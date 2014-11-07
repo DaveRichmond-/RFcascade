@@ -25,5 +25,9 @@ numer = sum(grayImage(:).*mask(:));
 denom = sum(mask(:));
 grayImage = grayImage - numer/denom;
 numer = norm(grayImage(:).*mask(:));
-grayImage = (grayImage / numer) * (denom / numel(modelSegmentsAAM.A0));     % note scaling of norm to smaller patch
+if length(modelSegmentsAAM) > 1
+    grayImage = (grayImage / numer) * (denom / numel(modelSegmentsAAM(1).A0));     % note scaling of norm to smaller patch    
+else
+    grayImage = (grayImage / numer) * (denom / numel(modelSegmentsAAM.A0));     % note scaling of norm to smaller patch
+end
 clear numer denom

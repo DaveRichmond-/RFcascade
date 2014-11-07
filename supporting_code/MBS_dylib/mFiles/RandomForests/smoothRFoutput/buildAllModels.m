@@ -10,11 +10,14 @@ for i = 1:length(fname_list),
 end
 
 % build rigid model
-[modelCentroids, allCentroidsForModel] = buildRigidBackboneModel(dataPath, fname_list);
+modelCentroids = buildRigidBackboneModel(dataPath, fname_list);
 
 % build AAM model
 modelSegmentsAAM = buildAAMperSegment(dataPath, fname_list, marginType, num_p, num_lambda);
 
-initializeAAMperSegment(dataPath, modelSegmentsAAM, modelCentroids, allCentroidsForModel);
+[q_model, p_model] = initializeAAMperSegment(dataPath, fname_list, modelCentroids, modelSegmentsAAM);
 
-save(strcat(output_path,'/modelForSmoothing.mat'), 'modelCentroids', 'modelSegmentsAAM')
+modelParams.q_model = q_model;
+modelParams.p_model = p_model;
+
+save(strcat(output_path,'/modelForSmoothing.mat'), 'modelCentroids', 'modelParams', 'modelSegmentsAAM')

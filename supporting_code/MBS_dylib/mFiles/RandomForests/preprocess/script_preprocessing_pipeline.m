@@ -55,7 +55,7 @@ clear all,
 
 %% 2. run FIJI macro "computeFeatures.ijm" for computing feature stacks, then move to /processing/registered/features/all_features
 
-%% 3. 
+%% 3. select out "important features"
 
 % USER PARAMETERS %%%%%%%%%%%%%%%%%%%%%%%%%%%%
 % turn on/off the XY position features
@@ -429,3 +429,52 @@ end
 %% save
 
 save /Users/richmond/Data/gtSomites/dataForModels/buildAAMdataset/dataForAppModel3 all_g pixelList all_X all_Y fname_complete_list
+
+%% 10. go back and generate centroids for non-rotated label images
+
+clear all
+
+fname_list_labels = getFileNames('/Users/richmond/Data/gtSomites/dataForModels/backup/unregistered_label_images', '.tif');
+
+num_classes = 22;
+
+for i = 1:length(fname_list_labels),
+    
+    i,
+    
+    labelImage = imread(fname_list_labels{i});
+
+    binSize = floor(size(labelImage,1)/4);
+    lambda =  floor(size(labelImage,1)/16);
+    sigma =   floor(size(labelImage,1)/8);
+
+    for c = 1:num_classes-1,
+    
+        mask = double(labelImage == c);
+        modelCentroids(c,:,i) = findCentroidFromProbMap(mask, binSize, lambda, sigma, 0);
+
+    end
+
+end
+
+%% visualize
+
+fname_list = getFileNames('/Users/richmond/Data/gtSomites/dataForModels/backup/grayscale_images', '.tif');
+
+for i = 1:length(fname_list_labels),
+    
+    i,
+    figure
+    grayImage = imread(fname_list{i});
+    imagesc(grayImage);
+    colormap('gray')
+    hold on,
+    plot(modelCentroids(:,1,i), modelCentroids(:,2,i),'ro')
+    
+end
+
+%% save
+
+all_centroids_unregistered = modelCentroids;
+save
+

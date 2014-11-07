@@ -47,7 +47,7 @@ end
 
 % generate model fits ----------------------------------->
 
-[segmentsFit, costs] = fitAAMtoProbMap_gridSample_2inits(grayImage, probMap, modelCentroids, modelSegmentsAAM, numGDsteps, priorStrength, numOffsets, offsetScale, output_flag);
+[segmentsFit, costs] = fitAAMtoProbMap_AAMperSomite(grayImage, probMap, modelCentroids, modelParams, modelSegmentsAAM, numGDsteps, priorStrength, numOffsets, offsetScale, output_flag);
 
 [unaryFactors, pairwiseFactors, fitMasks] = factorsFromFits(segmentsFit, costs, lambdaU, lambdaPW, probMap, centroidStats);
 
