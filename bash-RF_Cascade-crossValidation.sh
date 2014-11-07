@@ -10,7 +10,7 @@
 # for name in "Focused "*; do dummy=($name); mv "Focused "${dummy[1]} Focused_${dummy[1]}; done
 # for name in "feature-stack_Focused "*; do dummy=($name); mv "feature-stack_Focused "${dummy[1]} feature-stack_Focused_${dummy[1]}; done
 
-experimentID=201411061810
+experimentID=201411071230
 batchScript=bash-RF_Cascade-my2.sh
 
 # training data: "all"
@@ -22,8 +22,8 @@ batchScript=bash-RF_Cascade-my2.sh
 
 # append fold to experimentID
 
-numFolds=4
-numRotations=2 # = orig plus num-1
+numFolds=2
+numRotations=3 # = orig plus num-1
 maxRotations=6
 
 baseAllTrainInputPath=/Users/kainmull/Data/Somites/all/
@@ -107,8 +107,8 @@ do
     # prepare folder of training data
 
     let foldM1=-1+$fold
-    let firstIdx=$foldM1*$trainingChunksize
-    let lastIdxP1=$fold*$trainingChunksize
+    #    let firstIdx=$foldM1*$trainingChunksize
+    #    let lastIdxP1=$fold*$trainingChunksize
     for somedir in $rawPathTrain $featurePathTrain $labelPathTrain
     do
         somepath=$baseAllTrainInputPath$somedir
@@ -123,17 +123,24 @@ do
         trainingArr=($( ls -p $somepath/*.tif | xargs -n1 basename ))
 
         # move training data NOT to be used in this fold away
-        let i=$firstIdx
-        while [ $i -lt $lastIdxP1 ]
+        # put away: anything that is foldM1 (modulo numFolds)
+        let i=0
+        while [ $i -lt $numTrainingImages ]
         do
+            let iWoRot=$i/$numRotations
+            echo iWoRot $iWoRot
+            let isFoldM1=$(($iWoRot % $numFolds))
+            if [ $isFoldM1 -eq $foldM1 ]
+            then
             name=${trainingArr[$i]}
             echo moving away training data $i fold $fold
             mv $baseAllTrainInputPath$somedir/$name $baseAllTrainInputPath$somedir/$dummy/$name
+            fi
             i=$[$i+1]
         done
     done
 
-# prepare folder of test data
+    # prepare folder of test data
 
     let firstIdx=$foldM1*$testChunksize
     let lastIdxP1=$fold*$testChunksize
@@ -151,29 +158,26 @@ do
         testArr=($( ls -p $somepath/*.tif | xargs -n1 basename ))
 
         # move test data NOT to be used in this fold away
+        # put away: anything that is NOT foldM1 (modulo numFolds)
         let i=0
-        while [ $i -lt $firstIdx ]
-        do
-            name=${testArr[$i]}
-            echo moving away $i fold $fold
-            mv $baseAllTestInputPath$somedir/$name $baseAllTestInputPath$somedir/$dummy/$name
-            i=$[$i+1]
-        done
-        i=$lastIdxP1
         while [ $i -lt $numTestImages ]
         do
-            echo moving away test data $i fold $fold
-            name=${testArr[$i]}
-            mv $baseAllTestInputPath$somedir/$name $baseAllTestInputPath$somedir/$dummy/$name
+            let isFoldM1=$(($i % $numFolds))
+            if [ $isFoldM1 -ne $foldM1 ]
+            then
+                name=${testArr[$i]}
+                echo moving away test data $i fold $fold
+                mv $baseAllTestInputPath$somedir/$name $baseAllTestInputPath$somedir/$dummy/$name
+            fi
             i=$[$i+1]
         done
     done
 
-# run batch for fold
+    # run batch for fold
 
-sh ./$batchScript $experimentIDfold 
+    sh ./$batchScript $experimentIDfold
 
-# merge dice etc
+    # merge dice etc
 
 done
 
