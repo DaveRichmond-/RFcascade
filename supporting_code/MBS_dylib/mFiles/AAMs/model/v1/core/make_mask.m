@@ -1,20 +1,22 @@
-function [mask] = make_mask(X, Y, xbar_vector, SFPpoints, allPoints);
+function [mask] = make_mask(X, Y, xbar_vector, SFPpoints, allPoints, varargin)
 
 %
 
-% hard-wired dilation of mask --------------->
+if nargin >= 6
+    dilRadius = varargin{1};
+    openRadius = varargin{2};
+    L = varargin{3};
+else
+    dilRadius = 14;
+    openRadius = 8;     % for SFP of whole somite
+    L = 0.05;           % for SFP of forming boundary    
+end
 
-openRadius = 8;     % for SFP of whole somite
-dilRadius  = 14;    % for SFP of whole somite
 
-%openRadius = 4;     % temp!
-%dilRadius  = 10;    % temp!
-
-L = 0.05;           % for SFP of forming boundary
 
 % some useful things
 
-numpoints = size(allPoints, 1);
+numpoints = length(allPoints);
 xbar_mat = [xbar_vector(1:numpoints), xbar_vector(numpoints+1:2*numpoints)];
 R90 =  [0, -1; 1, 0];
 Rn90 = [0, 1; -1, 0];

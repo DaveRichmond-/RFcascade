@@ -1,8 +1,14 @@
-function appearance_model_movie(mean_image, eigen_images, Lambda, p_axis, n_sigma);
+function appearance_model_movie(mean_image, eigen_images, Lambda, p_axis, n_sigma, varargin)
 
 %
 
-fname = strcat('appearance variation along principle axis ',num2str(p_axis),'.avi');
+if nargin >= 6,
+    fname = varargin{1};
+else
+    fname = '';
+end
+
+fname = strcat(fname,'_appearance variation along principle axis ',num2str(p_axis),'.avi');
 writerObj = VideoWriter(fname);
 open(writerObj);
 
@@ -10,7 +16,7 @@ lambda = Lambda(p_axis);
 sigma_b = sqrt(lambda);
 
 range_b = n_sigma*sigma_b;
-deltaS = range_b / 99;
+deltaS = range_b / 9;
 b_vals = [ [0 : -deltaS : -range_b], [-range_b : deltaS : range_b], [range_b : -deltaS : 0] ];
 
 fhandle = figure;

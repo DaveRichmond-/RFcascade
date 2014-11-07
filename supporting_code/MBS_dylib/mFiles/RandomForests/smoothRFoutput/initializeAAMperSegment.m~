@@ -1,0 +1,63 @@
+function [] = initializeAAMperSegment(dataPath, modelSegmentsAAM, modelCentroids, allCentroidsForModel)
+
+%
+
+% load all XY data
+load(strcat(dataPath, '/allSomitePositions.mat'));
+
+%
+num_somites = size(modelSegmentsAAM,2);
+num_instances = size(allCentroids,3);
+
+% initialize
+pos_registered = zeros(size(pos));
+
+for k = 1:num_instances
+
+    % read out xy coords
+    x_mov = allCentroidsForModel(:,1,k);
+    y_mov = allCentroidsForModel(:,2,k);
+    x_fix = modelCentroids(:,1);
+    y_fix = modelCentroids(:,2);
+    
+    % calc warp from centroids
+    tform = fitgeotrans([x_mov, y_mov], [x_fix, y_fix], 'Similarity');
+    tform = maketform('affine', tform.T);
+
+    for i = 1:num_somites
+        
+        s_pos = squeeze(pos(:,:,i,k));
+        
+        [X, Y] = tformfwd(tform, s_pos(1,:), s_pos(2,:));
+        pos_registered(:,:,i,k) = [X; Y];
+
+    end
+    
+end
+
+% average all instances of same somite
+
+        s_init_vec = reshape(permute(s_init,[2 1]),[prod(size(s_init)),1]);
+        
+        s_pos_vec = reshape(permute(s_pos,[2 1]),[numel(s_pos),1]);
+        
+        for j = 1:size(Sja,3),
+            q_init(j,i) = dot(Sja_vec(:,j), (s_pos_vec - s0_vec));
+        end
+        
+        [A_temp,b_temp] = LK_qtoA(q_init(:,i), weights);
+        
+        s_unq = (A_temp^-1)*(s_pos - repmat(b_temp,[1,size(s0,2)]));
+        s_unq_vec = reshape(permute(s_unq,[2 1]),[numel(s_unq) 1]);
+        
+        % back-calculate pp's
+        
+        for j = 1:size(Sj,3),
+            
+            p_init(j,i) = dot(Sj_vec(:,j), (s_unq_vec - s0_vec));
+            
+        end
+        
+        clear som_indx frame_inx s_pos A_temp b_temp s_unq
+        
+    end

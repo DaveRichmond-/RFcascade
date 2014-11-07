@@ -1,0 +1,17 @@
+function buildAllModels(dataPath, fname_list, output_path)
+
+%
+
+% pull dates out of input fname_list
+if 
+for i = 1:length(fname_list),
+    k = strfind(fname_list{i}, '120');
+    k2 = strfind(fname_list{i}, '_1.tif');
+    fname_list{i} = fname_list{i}(k:k2-1);
+end
+
+% build rigid model
+rigidModel = buildRigidBackboneModel(dataPath, fname_list);
+
+% build AAM model
+modelSegmentsAAM = buildAAMperSegment(dataPath, fname_list, marginType);

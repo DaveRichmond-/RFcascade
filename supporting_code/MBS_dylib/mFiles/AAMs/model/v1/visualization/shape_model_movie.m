@@ -1,4 +1,4 @@
-function [] = shape_model_movie(xbar, Psi, Lambda, p_axis, n_sigma);
+function [] = shape_model_movie(xbar, Psi, Lambda, p_axis, n_sigma, varargin)
 
 % makes movie of statistical shape model
 % Psi     : matrix of eigenvectors from PCA
@@ -6,11 +6,17 @@ function [] = shape_model_movie(xbar, Psi, Lambda, p_axis, n_sigma);
 % p_axis  : principle axis to vary along
 % n_sigma : number of stdev's to go along principle axis
 
+if nargin >= 6,
+    fname = varargin{1};
+else
+    fname = '';
+end
+
 numpoints = size(Psi,1)/2;
 
 % set up movie object
 
-fname = strcat('shape variation along principle axis ',num2str(p_axis),'.avi');
+fname = strcat(fname,'_shape variation along principle axis ',num2str(p_axis),'.avi');
 writerObj = VideoWriter(fname);
 open(writerObj);
 

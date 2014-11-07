@@ -1,4 +1,4 @@
-function [dataSet, fname_list] = buildFullDataSet(data_dir, somite_nums);
+function [dataSet, fname_list] = buildFullDataSet(data_dir, somite_nums)
 
 % builds data set from series of .txt files containing somite landmarks
 % structure of the data table
@@ -13,8 +13,11 @@ function [dataSet, fname_list] = buildFullDataSet(data_dir, somite_nums);
 
 dataSet = [];
 
-% get list of text files, store in fname (cell)
+% get list of text files, store in fname_list (cell)
 
+fname_list = getFileNames(data_dir, '.txt');
+
+%{
 listing = dir(data_dir);
 cd(data_dir);
 
@@ -31,6 +34,7 @@ for i = 1:length(listing),
     
 end
 clear i k listing
+%}
 
 for i = 1:length(fname_list),
     

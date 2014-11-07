@@ -246,3 +246,186 @@ end
 save(strcat(output_path,'/rigidBackboneModel.mat'),'fname_list','modelCentroids')
 
 clear all
+
+%% 8. store all shapes from gt data
+
+% USER PARAMTER %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+data_dir = '/Users/richmond/Data/gtSomites/dataForModels/buildAAMdataset/manual_full_labeling';
+file_indx = 1:32;     % needs to be the same length as # of files
+num_somites = 21;
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+
+% get everything into one big table
+[dataSet, fname_list] = buildFullDataSet(data_dir, file_indx);
+clear data_dir
+
+% load all points into better format for model building
+pos = zeros(2,8,num_somites,length(fname_list));
+
+for i = 1:length(fname_list),
+    
+    data = dataSet(dataSet(:,7)==file_indx(i), :);
+    
+    for s = 1:num_somites,
+        
+        if s < num_somites,
+            indx = 5*(s-1) + [4:5,9:-1:7,1:3];
+        else
+            indx = 5*(s-1) + [4:5,8:-1:6,1:3];
+        end
+         
+        pos(:,:,s,i) = data(indx,[2:3])';
+        
+    end
+end
+
+% flip LR
+
+flip_indx = [3,4,6,8,9,10,12,13,14,15,18,19,20,22,23];
+
+for i = 1:length(flip_indx)
+    pos(1,:,:,flip_indx(i)) = 1024 - (pos(1,:,:,flip_indx(i)) - 1);
+end
+
+%% visualize
+
+images_dir = '/Users/richmond/Data/gtSomites/dataForModels/buildAAMdataset/grayscale_images';
+fname_list = getFileNames(images_dir, '.tif');
+
+% visualize
+for j = 1:32,
+    figure,
+    imagesc(imread(fname_list{j}))
+    colormap('gray')
+    hold on,
+    for i = 1:21,
+        plot(pos(1,:,i,j),pos(2,:,i,j),'ro','Markersize',10)
+    end
+end
+
+%%
+
+% change back to old naming scheme
+xmat = pos;
+clear pos
+
+% initialize
+xvec = zeros(size(xmat,1)*size(xmat,2), num_somites, length(fname_list));
+
+% make zero mean, and vectorize
+for i = 1:length(fname_list),
+    
+    for s = 1:num_somites,
+
+        % center all shapes on origin
+        xmat(:,:,s,i) = xmat(:,:,s,i) - repmat(mean(xmat(:,:,s,i),2), [1,size(xmat,2)]); 
+        xvec(:,s,i) = reshape(permute(xmat(:,:,s,i),[2,1,3,4]), [size(xvec,1), 1, 1]); 
+    end 
+end
+
+%%
+
+% visualize
+for i = 1:21,
+    plot(xvec(1:8,i,11),-xvec(9:16,i,11))
+    pause(0.5)
+end
+
+%% save
+
+all_xvec = xvec;
+fname_complete_list = fname_list;
+
+save /Users/richmond/Data/gtSomites/dataForModels/buildAAMdataset/dataForShapeModel all_xvec fname_complete_list
+
+%% 9. store all image patches from gt
+
+clear all
+
+% USER PARAMTER %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+image_dir = '/Users/richmond/Data/gtSomites/dataForModels/buildAAMdataset/grayscale_images';
+data_dir = '/Users/richmond/Data/gtSomites/dataForModels/buildAAMdataset';
+num_somites = 21;
+numpoints = 8;
+SFPpoints = 0:7;
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+
+load(strcat(data_dir,'/dataForShapeModel.mat'));
+load(strcat(data_dir,'/allSomitePositions.mat'));
+ShapeModel = buildShapeModelperSegment(data_dir, fname_complete_list);
+
+% load all images
+for i = 1:length(fname_complete_list),
+    imageStack(:,:,i) = imread(strcat(image_dir,'/',fname_complete_list{i}));
+end
+
+for i = 1:num_somites,
+    i,
+    % unpack ShapeModel for ith somite
+    xbar_vector = ShapeModel(i).xbar;
+    xbar_mat = [xbar_vector(1:numpoints), xbar_vector(numpoints+1:2*numpoints)]';
+    
+    % build shape normalized space ------------------------------->
+    
+    % find pixels lying within mean shape
+    [X, Y] = meshgrid([-1 : 0.01 : 1]);    
+    mask = make_mask(X, Y, xbar_vector, SFPpoints, SFPpoints, 28, 2, 0.05);
+    
+    % find list of points in mask    
+    CC = bwconncomp(mask);
+    sampled_positions = [X(CC.PixelIdxList{1,1}) Y(CC.PixelIdxList{1,1})];
+    
+    % use Thin-Plate Spline to warp somite appearance onto Shape-Free-Patch ------------------------------->
+    [X_image, Y_image] = meshgrid([1:size(imageStack(:,:,1),2)], [1:size(imageStack(:,:,1),1)]);
+    
+    for j = 1:length(fname_complete_list),
+        
+        % read shape_vector out of dataSet        
+        shape_mat = pos(:,:,i,j);
+        
+        % calculate warp function using Matlab's thin plate spline        
+        st = tpaps(xbar_mat, shape_mat, 1);
+        warped_positions = fnval(st, sampled_positions')';
+        
+        % map image at warped_positions back into warped_image        
+        raw_image = imageStack(:,:,j);
+        warped_image = zeros(size(X,1), size(X,2));
+        
+        for m = 1:length(CC.PixelIdxList{1,1}),            
+            warped_image(CC.PixelIdxList{1,1}(m)) = bilinear_interp(raw_image, warped_positions(m,2), warped_positions(m,1));            
+        end
+        
+        % create vectorized image for PCA        
+        warped_image_vector = warped_image(CC.PixelIdxList{1,1});
+        warped_image_vector = warped_image_vector(:);
+        
+        % store everything        
+        g(:,j) = warped_image_vector;
+        
+    end
+    
+    % translate all vectors to be zero mean
+    g = g - repmat(mean(g,1), [size(g,1),1]);
+    % INSTEAD OF ALIGNING ALL IMAGE VECTORS, SIMPLY make all image vectors one-norm !
+    g = g ./ repmat(sqrt(sum(g.^2,1)), [size(g,1),1]);
+    
+    all_g{i} = g;
+    pixelList{i} = CC.PixelIdxList{1,1};
+    all_X{i} = X;
+    all_Y{i} = Y;
+    clear g CC X Y
+    
+end
+
+%% visualize
+
+for i = 4:4%length(fname_complete_list)
+    [gbar, R, Psi, Lambda, ~] = myPCA(all_g{i});    
+    
+    [mean_image, eigen_images] = mean_eigen_images(gbar, all_X{i}, pixelList{i}, Psi);
+    appearance_model_movie(mean_image, eigen_images, Lambda, 1, 2, strcat('somite#',num2str(i)));
+end
+
+%% save
+
+save /Users/richmond/Data/gtSomites/dataForModels/buildAAMdataset/dataForAppModel3 all_g pixelList all_X all_Y fname_complete_list

@@ -1,4 +1,4 @@
-function [rigidModel, centroidsForModel] = buildRigidBackboneModel(dataPath, fname_list)
+function [rigidModel] = buildRigidBackboneModel(dataPath, fname_list)
 
 % modelPath: specifies path to rigidBackboneModel.mat, which stores centroids positions of all gt data, 
 % as well as the corresponding filenames that each comes from

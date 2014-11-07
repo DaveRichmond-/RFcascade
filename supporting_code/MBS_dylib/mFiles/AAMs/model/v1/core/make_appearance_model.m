@@ -1,4 +1,4 @@
-function [mean_image_vector, R, Psi, Lambda, PsiT, X, Y, CC] = make_appearance_model(imageStack, dataSet, xbar_vector, SFPpoints);
+function [mean_image_vector, R, Psi, Lambda, PsiT, X, Y, CC] = make_appearance_model(imageStack, dataSet, xbar_vector, SFPpoints)
 
 %{
 notes:
