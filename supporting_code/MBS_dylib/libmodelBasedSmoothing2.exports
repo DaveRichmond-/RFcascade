@@ -10,4 +10,8 @@ mlxMBS_AAM_forINF
 MBS_AAM_forINF
 mlxAAM_Inf_2inits
 AAM_Inf_2inits
+mlxAAM_perSomite_Inf_2inits
+AAM_perSomite_Inf_2inits
+mlxBuildAllModels
+buildAllModels
 
