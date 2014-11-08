@@ -27,9 +27,9 @@ using namespace vigra;
 int main(int argc, const char **argv)
 {
 
-    std::string baseOutputPath("/Users/richmond/Analysis/SomiteTracker/RFs/real_data/on_registered_data/Cascade_w_Smoothing");
+//    std::string baseOutputPath("/Users/richmond/Analysis/SomiteTracker/RFs/real_data/on_registered_data/Cascade_w_Smoothing");
     std::string rfPath;
-    rfPath = baseOutputPath + argv[2];
+    rfPath = argv[2];
 
     std::string rfName;
     rfName = rfPath + "/" + "rf_cascade";

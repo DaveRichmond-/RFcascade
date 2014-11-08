@@ -2,6 +2,14 @@ function [] = buildAllModels(dataPath, fname_list, marginType, num_p, num_lambda
 
 %
 
+display('building AAM model')
+display('list of files used to build model is:')
+for i = 1:length(fname_list)
+    display(fname_list{i})
+end
+display(strcat('data path: ',dataPath));
+display(strcat('output path: ',output_path));
+
 % pull date_pos out of input fname_list
 for i = 1:length(fname_list),
     k1 = strfind(fname_list{i}, '120');

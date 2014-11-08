@@ -6,6 +6,12 @@ function [unaryFactors, pairwiseFactors, fitMasks] = AAM_Inf_2inits(grayImage, g
 %
 display('launched AAM_Inf_2inits')
 
+% test
+display('parameter check:')
+priorStrength
+numOffsets
+offsetScale
+
 % hard-code output flag for now, because varargin doesn't seem to work with calls to shared library
 output_flag = 0;
 
