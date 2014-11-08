@@ -27,7 +27,9 @@ for c = 1:num_FGclasses;
         % create 0-1 mask for particular instance, and store indices of sparse 1's
         xv = segmentsFit(1,:,c,f)';
         yv = segmentsFit(2,:,c,f)';
-        fitMasks(:,:,slice_indx) = inpolygon(Xgrid, Ygrid, [xv; xv(1)], [yv; yv(1)]);        
+        
+        [IN, ON] = inpolygon(Xgrid, Ygrid, [xv; xv(1)], [yv; yv(1)]);
+        fitMasks(:,:,slice_indx) = IN - ON;
         fgIndices = reshape(fitMasks(:,:,slice_indx), [prod([size(fitMasks,1), size(fitMasks,2)]), 1]);
         
         % calc unaries for each slice

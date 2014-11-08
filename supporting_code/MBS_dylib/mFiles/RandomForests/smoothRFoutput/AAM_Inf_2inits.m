@@ -6,12 +6,6 @@ function [unaryFactors, pairwiseFactors, fitMasks] = AAM_Inf_2inits(grayImage, g
 %
 display('launched AAM_Inf_2inits')
 
-% test
-display('parameter check:')
-priorStrength
-numOffsets
-offsetScale
-
 % hard-code output flag for now, because varargin doesn't seem to work with calls to shared library
 output_flag = 0;
 
@@ -57,6 +51,11 @@ end
 [segmentsFit, costs] = fitAAMtoProbMap_gridSample_2inits(grayImage, probMap, modelCentroids, modelSegmentsAAM, numGDsteps, priorStrength, numOffsets, offsetScale, output_flag);
 
 [unaryFactors, pairwiseFactors, fitMasks] = factorsFromFits(segmentsFit, costs, lambdaU, lambdaPW, probMap, centroidStats);
+
+% etch fitMasks, as was done to generate the gt data
+uncertainty_radius = 2;
+open_radius = 8;
+[fitMasks] = etchFitMasks(fitMasks, uncertainty_radius, open_radius);
 
 % resample fitMasks
 if (sampling ~= 1)

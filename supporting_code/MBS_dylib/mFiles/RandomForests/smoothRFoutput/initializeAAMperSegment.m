@@ -49,7 +49,7 @@ for i = 1:num_somites
 end
 
 % visualize
-
+%{
 figure,
 hold on,
 plot(modelCentroids(:,1),modelCentroids(:,2),'ro')
@@ -57,6 +57,7 @@ for i = 1:size(pos_registered_avg,3)
     plot(pos_registered_avg(1,:,i),pos_registered_avg(2,:,i))
 end
 axis([0 1024 0 1024])
+%}
 
 % back-calculate the parameters of this warp
 q_init = zeros(4, num_somites);
@@ -72,6 +73,7 @@ for i = 1:num_somites
 end
 
 % visualize forward projection
+%{
 figure,
 hold on,
 plot(modelCentroids(:,1),modelCentroids(:,2),'ro')
@@ -94,3 +96,4 @@ for i = 1:21,
     
 end
 axis([0 1024 0 1024])
+%}

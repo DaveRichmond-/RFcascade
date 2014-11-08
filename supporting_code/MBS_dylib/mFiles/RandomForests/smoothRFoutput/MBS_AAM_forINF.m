@@ -52,6 +52,11 @@ end
 
 [unaryFactors, pairwiseFactors, fitMasks] = factorsFromFits(segmentsFit, costs, lambdaU, lambdaPW, probMap, centroidStats);
 
+% etch fitMasks, as was done to generate the gt data
+uncertainty_radius = 2;
+open_radius = 8;
+[fitMasks] = etchFitMasks(fitMasks, uncertainty_radius, open_radius);
+
 % resample fitMasks
 if (sampling ~= 1)
     fitMasks = permute(downsample(permute(downsample(fitMasks, sampling),[2,1,3]), sampling),[2,1,3]);
