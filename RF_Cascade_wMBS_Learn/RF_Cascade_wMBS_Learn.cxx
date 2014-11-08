@@ -85,11 +85,24 @@ int run_main(int argc, const char **argv)
 
     bool useAllImagesAtEveryLevel = (atoi(argv[22])>0);
 
-    // build random order in which to use images:
-    std::srand ( unsigned ( std::time(0) ) );
+    // build order in which to use images:
+    // std::srand ( unsigned ( std::time(0) ) );
+    int numRotations=2; //TODO: find out from filenames!
     std::vector<int> imgNumVector;
-    for (int i=0; i<num_images; ++i) imgNumVector.push_back(i); // 0 1 2 3 4 5 6 7 8 9 ...
-    std::random_shuffle ( imgNumVector.begin(), imgNumVector.end() );
+    int numOrigImagesPerChunk=(num_images/num_levels)/numRotations;
+    for (int l=0; l<num_levels; ++l) {
+        for (int i=0; i<numOrigImagesPerChunk; i++){
+            for (int r=0; r<numRotations; r++ ) {
+                imgNumVector.push_back((num_levels*i+l)*numRotations+r); // 0 1 2 3 4 5 6 7 8 9 ...
+            }
+        }
+    }
+    // std::random_shuffle ( imgNumVector.begin(), imgNumVector.end() );
+    std::cout << "image order: ";
+    for(int x=0; x<imgNumVector.size(); x++) {
+        std::cout << imgNumVector[x] << " ";
+    }
+    std::cout << "\n" << std::endl;
 
     ArrayVector< MultiArray<2, ImageType> > rfFeaturesArray;
     ArrayVector< MultiArray<2, LabelType> > rfLabelsArray;
@@ -103,6 +116,11 @@ int run_main(int argc, const char **argv)
         imagetools::getArrayOfFeaturesAndLabels(featPath, labelPath, rfFeaturesArray, rfLabelsArray, xy_dim, imgNumVector, rfFeaturesArraySize, sampling);
         // re-use above strategy to get grayscale images.  need some dummy variables.
         imagetools::getArrayOfRawImages(rawPath, rfRawImageArray, raw_dim, imgNumVector, rfFeaturesArraySize);
+    } else if (loadRF_flag) {
+        // load one image just to get xy_dim right
+        std::vector<int> dummyImgNumVector;
+        dummyImgNumVector.push_back(0);
+        imagetools::getArrayOfFeaturesAndLabels(featPath, labelPath, rfFeaturesArray, rfLabelsArray, xy_dim, dummyImgNumVector, 1, sampling);
     }
 
     std::cout << "\n" << "image import succeeded!" << std::endl;
@@ -197,6 +215,11 @@ int run_main(int argc, const char **argv)
                 int b=(i+1)*num_images/num_levels;
 
                 std::vector<int> imgNumVectorAtLevel(&imgNumVector[a],&imgNumVector[b]);
+                std::cout << "level " << i << " image order: ";
+                for(int x=0; x<imgNumVectorAtLevel.size(); x++) {
+                    std::cout << imgNumVectorAtLevel[x] << " ";
+                }
+                std::cout << "\n" << std::endl;
 
                 imagetools::getArrayOfFeaturesAndLabels(featPath, labelPath, rfFeaturesArray, rfLabelsArray, xy_dim, imgNumVectorAtLevel, rfFeaturesArraySize, sampling);
                 // re-use above strategy to get grayscale images.  need some dummy variables.
