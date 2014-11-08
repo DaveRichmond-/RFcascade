@@ -52,6 +52,31 @@ public:
     }
     */
 
+    static void buildAAM(const char* dataPath, const char* outputPath, const char** fnameList, const int marginType=2, const int numP=1, const int numLambda=1)
+    {
+//        mwArray mwDataPath(1, dataPath.length(), mxCHAR_CLASS);
+        mwArray mwDataPath = mwArray(dataPath);
+
+//        mwArray mwOutputPath(1, outputPath.length(), mxCHAR_CLASS);
+        mwArray mwOutputPath = outputPath;
+
+        // hard-code the length for now
+        mwArray mwFnameList(12, fnameList);
+//        for (int i = 0; i < fnameList.size(); ++i)
+//            mwFnameList(i+1) = fnameList[i];
+
+        mwArray mwMarginType;
+        mwMarginType = mwArray(marginType);
+
+        mwArray mwNumP;
+        mwNumP = mwArray(numP);
+
+        mwArray mwNumLambda;
+        mwNumLambda = mwArray(numLambda);
+
+        buildAllModels(mwDataPath, mwFnameList, mwMarginType, mwNumP, mwNumLambda, mwOutputPath);
+    }
+
     template <class T1>
     static void AAM_MBS(const MultiArray<3, T1> & probStack, const MultiArray<3, T1> & rawImage, MultiArray<3, T1> & smoothProbStack, MultiArray<1, double> priorStrength, int numOffsets=5, double offsetScale=1.0, int sampling=1, int numGDsteps=50, float lambda=2)
     {
