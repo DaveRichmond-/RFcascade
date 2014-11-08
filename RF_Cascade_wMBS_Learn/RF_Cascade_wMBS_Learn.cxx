@@ -61,14 +61,19 @@ int run_main(int argc, const char **argv)
     double smoothing_scale = 3.0;
     int numGDsteps = atoi(argv[21]);
     MultiArray<1, double> priorStrength(6);
-    priorStrength(1) = atof(argv[23]);
-    priorStrength(2) = atof(argv[24]);
-    priorStrength(3) = atof(argv[25]);
-    priorStrength(4) = atof(argv[26]);
-    priorStrength(5) = atof(argv[27]);
-    priorStrength(6) = atof(argv[28]);
+    priorStrength(0) = atof(argv[23]);
+    priorStrength(1) = atof(argv[24]);
+    priorStrength(2) = atof(argv[25]);
+    priorStrength(3) = atof(argv[26]);
+    priorStrength(4) = atof(argv[27]);
+    priorStrength(5) = atof(argv[28]);
     int numOffsets = atoi(argv[29]);
     double offsetScale = atof(argv[30]);
+
+    std::string AAMdataPath = argv[31];
+    int marginType = atoi(argv[32]);
+    int numP = atoi(argv[33]);
+    int numLambda = atoi(argv[34]);
 
     float lambdaU = 4;
     float lambdaPW = 4;
@@ -111,6 +116,8 @@ int run_main(int argc, const char **argv)
     ArrayVector< MultiArray<2, ImageType> > rfRawImageArray;
     Shape2 raw_dim(0,0);
 
+    int smooth_flag = atoi(argv[19]);
+
     bool rfFeaturesArraySize = useAllImagesAtEveryLevel?1:num_levels;
     if (useAllImagesAtEveryLevel) {
         imagetools::getArrayOfFeaturesAndLabels(featPath, labelPath, rfFeaturesArray, rfLabelsArray, xy_dim, imgNumVector, rfFeaturesArraySize, sampling);
@@ -146,7 +153,6 @@ int run_main(int argc, const char **argv)
     EarlyStopDepthAndNodeSize stopping(depth, min_split_node_size);
 
     // even more params...
-    int smooth_flag = atoi(argv[19]);
     double sample_fraction = atof(argv[20]);
 
     std::cout << "sample fraction is: " << sample_fraction << std::endl;
