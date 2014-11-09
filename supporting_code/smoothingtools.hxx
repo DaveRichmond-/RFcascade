@@ -77,6 +77,88 @@ public:
         buildAllModels(mwDataPath, mwFnameList, mwMarginType, mwNumP, mwNumLambda, mwOutputPath);
     }
 
+
+    template <class T1>
+    static void AAM_perSomite_Inference_2inits(const char* modelPath, const MultiArray<3, T1> & probStack, const MultiArray<3, T1> & rawImage, MultiArray<3, T1> & margProbStack, MultiArray<2, int> & MAPLabels, MultiArray<1, double> priorStrength, int numOffsets=5, double offsetScale=1.0, int sampling=1, int numGDsteps=50, float lambdaU=4, float lambdaPW=4)
+    {
+
+        // useful constants
+        int num_classes = probStack.size(2);
+
+        // convert to Matlab types ------------------------------------------------------------------------------>
+
+        // convert parameters to Matlab types
+
+        mwArray mwModelPath = modelPath;
+
+        mwArray mwPriorStrength(1, priorStrength.size(), mxDOUBLE_CLASS);
+        for (int i = 0; i < priorStrength.size(); ++i)
+            mwPriorStrength(i+1) = mwArray(priorStrength(i));
+
+        mwArray mwNumOffsets;
+        mwNumOffsets = mwArray(numOffsets);
+
+        mwArray mwOffsetScale(1, 1, mxDOUBLE_CLASS);
+        mwOffsetScale = mwArray(offsetScale);
+
+        mwArray mwSampling;
+        mwSampling = mwArray(sampling);
+
+        mwArray mwNumGDsteps;
+        mwNumGDsteps = mwArray(numGDsteps);
+
+        mwArray mwLambdaU;
+        mwLambdaU = mwArray(lambdaU);
+
+        mwArray mwLambdaPW;
+        mwLambdaPW = mwArray(lambdaPW);
+
+        mwArray mwProbStackShape(1, 3, mxDOUBLE_CLASS);
+        mwProbStackShape(1) = mwArray(static_cast<double>(probStack.size(1)));      // flip xy for Matlab
+        mwProbStackShape(2) = mwArray(static_cast<double>(probStack.size(0)));
+        mwProbStackShape(3) = mwArray(static_cast<double>(probStack.size(2)));
+
+        mwArray mwRawImageShape(1, 2, mxDOUBLE_CLASS);
+        mwRawImageShape(1) = mwArray(static_cast<double>(rawImage.size(1)));        // these are flipped for Matlab
+        mwRawImageShape(2) = mwArray(static_cast<double>(rawImage.size(0)));
+
+        // convert multiArray to mwArray for Matlab
+        mwArray mwProbs(1, probStack.size(), mxSINGLE_CLASS);
+        vigraToMatlab_Array<T1>(probStack, mwProbs);
+
+        mwArray mwRawImage(1, rawImage.size(), mxSINGLE_CLASS);
+        vigraToMatlab_Array<T1>(rawImage, mwRawImage);
+
+        // initialize arrays for output
+        mwArray mwUnaryFactors(1, (num_classes-1)*2*numOffsets, mxDOUBLE_CLASS);
+        mwArray mwPairwiseFactors(1, 4*numOffsets*numOffsets*(num_classes-1), mxDOUBLE_CLASS);
+        mwArray mwFitMasks(1, probStack.size(0)*probStack.size(1)*(num_classes-1)*2*numOffsets, mxINT8_CLASS);
+
+        // call MBS routine ----------------------------------------------------------------------------------------------->
+
+        AAM_perSomite_Inf_2inits(3, mwUnaryFactors, mwPairwiseFactors, mwFitMasks, mwModelPath, mwRawImage, mwRawImageShape, mwProbs, mwProbStackShape, mwSampling, mwNumGDsteps, mwPriorStrength, mwNumOffsets, mwOffsetScale, mwLambdaU, mwLambdaPW);
+
+        // convert from Matlab types ---------------------------------------------------------------------------->
+
+        // get data out of mwArrays
+        MultiArray<3, int> fitMasks(Shape3(probStack.size(0), probStack.size(1), (num_classes-1)*2*numOffsets));
+        matlabToVigra_Array<int>(mwFitMasks, fitMasks);
+
+        MultiArray<2, double> unaryFactors(Shape2(num_classes-1, 2*numOffsets));
+        matlabToVigra_UnaryFactors(mwUnaryFactors, unaryFactors);
+
+        MultiArray<3, double> pairwiseFactors(Shape3(2*numOffsets, 2*numOffsets, num_classes-1));
+        matlabToVigra_PairwiseFactors(mwPairwiseFactors, pairwiseFactors);
+
+        // calc marginal and MAP solutions, and return corresponding probability and label images ---------------------------------------------------------------------------->
+
+        margProbStack.reshape(probStack.shape());
+        probFromFits<double, T1>(unaryFactors, pairwiseFactors, fitMasks, margProbStack);
+
+        MAPLabels.reshape(Shape2(probStack.size(0), probStack.size(1)));
+        MAPFromFits<double>(unaryFactors, pairwiseFactors, fitMasks, MAPLabels);
+    }
+
     template <class T1>
     static void AAM_MBS(const MultiArray<3, T1> & probStack, const MultiArray<3, T1> & rawImage, MultiArray<3, T1> & smoothProbStack, MultiArray<1, double> priorStrength, int numOffsets=5, double offsetScale=1.0, int sampling=1, int numGDsteps=50, float lambda=2)
     {

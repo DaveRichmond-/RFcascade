@@ -67,6 +67,7 @@ int run_main(int argc, const char **argv)
     priorStrength(3) = atof(argv[26]);
     priorStrength(4) = atof(argv[27]);
     priorStrength(5) = atof(argv[28]);
+
     int numOffsets = atoi(argv[29]);
     double offsetScale = atof(argv[30]);
 
@@ -123,6 +124,27 @@ int run_main(int argc, const char **argv)
         imagetools::getArrayOfFeaturesAndLabels(featPath, labelPath, rfFeaturesArray, rfLabelsArray, xy_dim, imgNumVector, rfFeaturesArraySize, sampling);
         // re-use above strategy to get grayscale images.  need some dummy variables.
         imagetools::getArrayOfRawImages(rawPath, rfRawImageArray, raw_dim, imgNumVector, rfFeaturesArraySize);
+
+        if ( 0 ) //(smooth_flag == 4){                                                                                                   NOTE: HARD-CODE THIS FOR NOW
+        {
+            // build AAM model for fitting
+            const char* AAMfnameList[12];
+            AAMfnameList[0]  = "120807_f0000";
+            AAMfnameList[1]  = "120807_f0005";
+            AAMfnameList[2]  = "120807_f0013";
+            AAMfnameList[3]  = "120807_f0018";
+            AAMfnameList[4]  = "120816_f0002";
+            AAMfnameList[5]  = "120816_f0007";
+            AAMfnameList[6]  = "120816_f0010";
+            AAMfnameList[7]  = "120816_f0016";
+            AAMfnameList[8]  = "120816_f0019";
+            AAMfnameList[9]  = "120804_f0010";
+            AAMfnameList[10] = "120804_f0012";
+            AAMfnameList[11] = "120804_f0019";
+
+            smoothingtools::buildAAM(AAMdataPath.c_str(), rfPath.c_str(), AAMfnameList, marginType, numP, numLambda);                   // note: saves model to rfPath (ie, with forest)
+        }
+
     } else if (loadRF_flag) {
         // load one image just to get xy_dim right
         std::vector<int> dummyImgNumVector;
@@ -291,7 +313,11 @@ int run_main(int argc, const char **argv)
                     } else if ( smooth_flag == 3 ){
                         MultiArray<2, int> MAPLabels;     // for now, just throw away the MAPLabels
                         smoothingtools::AAM_Inference_2inits<ImageType>(probArray[k], rawImageArray[k], smoothProbArray[k], MAPLabels, priorStrength, numOffsets, offsetScale, sampling, numGDsteps, lambdaU, lambdaPW);
+                    } else if ( smooth_flag == 4 ){
+                        MultiArray<2, int> MAPLabels;     // for now, just throw away the MAPLabels
+                        smoothingtools::AAM_perSomite_Inference_2inits<ImageType>(rfPath.c_str(), probArray[k], rawImageArray[k], smoothProbArray[k], MAPLabels, priorStrength, numOffsets, offsetScale, sampling, numGDsteps, lambdaU, lambdaPW);
                     }
+
                 }
 
                 // Gaussian Smoothing (old)

@@ -15,7 +15,7 @@ num_classes = size(probMap,3);
 % 1) calc centroids for every class
 centroids = zeros(num_classes-1,2); 
 for i = 1:num_classes-1,
-    centroids(i,:) = findCentroidFromProbMap(probMap(:,:,i+1), binSize, lambda, sigma, 0);
+    centroids(i,:) = findCentroidFromProbMap(probMap(:,:,i+1), binSize, lambda, sigma, output_flag);
 end
 
 % visualize centroids

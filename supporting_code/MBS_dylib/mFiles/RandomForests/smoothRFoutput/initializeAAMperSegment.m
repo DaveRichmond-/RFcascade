@@ -9,7 +9,21 @@ load(strcat(dataPath, '/dataForInitialization.mat'));
 %
 indx = findIndices(dataPath, fname_list);
 centroids = all_centroids_unregistered(:,:,indx);
+pos = pos(:,:,:,indx);
 
+% visualize
+%{
+for i = 1:size(centroids,3)
+   
+    figure,
+    hold on
+    plot(centroids(:,1,i),centroids(:,2,i),'ko')
+    for j = 1:size(pos,3)
+        plot(pos(1,:,j,i),pos(2,:,j,i))
+    end
+        
+end
+%}
 %
 num_somites = size(modelCentroids,1);
 num_instances = size(centroids,3);
@@ -42,13 +56,14 @@ for k = 1:num_instances
 end
 
 % average all instances of same somite
+pos_registered_avg = zeros(size(pos_registered,1),size(pos_registered,2),num_somites);
 for i = 1:num_somites
     
     pos_registered_avg(:,:,i) = mean(pos_registered(:,:,i,:),4);
     
 end
 
-% visualize
+% visualize avg positions
 %{
 figure,
 hold on,
@@ -61,7 +76,7 @@ axis([0 1024 0 1024])
 
 % back-calculate the parameters of this warp
 q_init = zeros(4, num_somites);
-p_init = zeros(1,num_somites);
+p_init = zeros(1, num_somites);
 for i = 1:num_somites
     % calc the transformation
     pos_reg_avg_vec = reshape(permute(pos_registered_avg(:,:,i),[2,1,3]),[size(pos_registered_avg,1)*size(pos_registered_avg,2),1]);

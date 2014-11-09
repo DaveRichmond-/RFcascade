@@ -64,13 +64,14 @@ for i = 1:size(centroids,1),
 %     yv = s_init(2,:)';
 %     [Xgrid, Ygrid] = meshgrid([1:1024],[1:1024]);
 %     mask(:,:,i) = inpolygon(Xgrid, Ygrid, [xv; xv(1)], [yv; yv(1)]);
+%     figure,
+%     imagesc(max(mask,[],3))
+% pause(3)
     
 end
 
 % visualize
-% figure,
-% imagesc(max(mask,[],3))
-% pause(3)
+
 
 % calculate Offsets along the line between neighboring segments, using registered model
 [Xmodel, Ymodel] = tformfwd(tform, modelCentroids(:,1)', modelCentroids(:,2)');
