@@ -1,6 +1,6 @@
 //
 // MATLAB Compiler: 5.0 (R2013b)
-// Date: Sat Nov  8 15:16:20 2014
+// Date: Sun Nov  9 21:25:48 2014
 // Arguments: "-B" "macro_default" "-v" "-W" "cpplib:libmodelBasedSmoothing2"
 // "-T" "link:lib" "modelBasedSmoothing_wARGS" "MBS_AAM_gS" "MBS_AAM_forINF"
 // "AAM_Inf_2inits" "AAM_perSomite_Inf_2inits" "buildAllModels" 
@@ -212,8 +212,10 @@ void MW_CALL_CONV AAM_perSomite_Inf_2inits(int nargout, mwArray& unaryFactors, m
 LIB_libmodelBasedSmoothing2_CPP_API 
 void MW_CALL_CONV buildAllModels(const mwArray& dataPath, const mwArray& fname_list, 
                                  const mwArray& marginType, const mwArray& num_p, const 
-                                 mwArray& num_lambda, const mwArray& output_path)
+                                 mwArray& num_lambda, const mwArray& output_path, const 
+                                 mwArray& saveModelForTrain, const mwArray& 
+                                 saveModelForTest)
 {
-  mclcppMlfFeval(_mcr_inst, "buildAllModels", 0, 0, 6, &dataPath, &fname_list, &marginType, &num_p, &num_lambda, &output_path);
+  mclcppMlfFeval(_mcr_inst, "buildAllModels", 0, 0, 8, &dataPath, &fname_list, &marginType, &num_p, &num_lambda, &output_path, &saveModelForTrain, &saveModelForTest);
 }
 

@@ -1,8 +1,9 @@
-function [] = buildAllModels(dataPath, fname_list, marginType, num_p, num_lambda, output_path)
+function [] = buildAllModels(dataPath, fname_list, marginType, num_p, num_lambda, output_path, saveModelForTrain, saveModelForTest)
 
 %
 
 display('building AAM model per somite')
+
 display(strcat('data path: ',dataPath));
 
 % pull date_pos out of input fname_list
@@ -39,4 +40,11 @@ modelSegmentsAAM = buildAAMperSegment(dataPath, indx, marginType, num_p, num_lam
 modelParams.q_model = q_model;
 modelParams.p_model = p_model;
 
-save(strcat(output_path,'/modelForSmoothing.mat'), 'modelCentroids', 'centroidStats', 'modelParams', 'modelSegmentsAAM')
+% save model for training
+if saveModelForTrain
+    save(strcat(output_path,'/modelForSmoothing.mat'), 'modelCentroids', 'centroidStats', 'modelParams', 'modelSegmentsAAM')
+end
+% save model for test
+if saveModelForTest
+    save(strcat(output_path,'/modelForSmoothing_forTest.mat'), 'modelCentroids', 'centroidStats', 'modelParams', 'modelSegmentsAAM')
+end

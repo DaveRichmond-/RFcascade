@@ -518,6 +518,22 @@ public:
         }
     }
 
+    static void getListOfTrainingData(std::string imgPath, ArrayVector<std::string> & allImageNames, const std::vector<int> & randVector)
+    {
+        // get all names:
+        ArrayVector<std::string> allImageNamesOrdered = imagetools::getAllFilenames(imgPath);
+
+        int num_images=randVector.size();
+
+        // randomize order of names:
+//        ArrayVector<std::string> allImageNames(num_images);
+        allImageNames.resize(num_images);
+        for (int i=0; i<num_images; i++) {
+            allImageNames[i]=allImageNamesOrdered[randVector[i]];
+        }
+
+    }
+
     // weightedProbMap somehow got broken when making diceOnFolder.  comment out for now...
     /*
     template <class T1, class T2>

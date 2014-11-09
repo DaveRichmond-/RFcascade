@@ -25,12 +25,13 @@ using namespace vigra;
 
 int run_main(int argc, const char **argv)
 {
-    if (argc<23) {
+    if (argc<34) {
 
-        std::cout << "RF_Cascade_wMBS_Learn needs 22 arguments. Usage: " << std::endl;
+        std::cout << "RF_Cascade_wMBS_Learn needs 34 arguments. Usage: " << std::endl;
         std::cout << "RF_Cascade_wMBS_Learn  <baseInputPath> <baseOutputPath> <rawPath> <featurePath> <labelPath> <randomForestPath> ";
         std::cout << "useExistingForest numImages numLevels reSampleBy numClasses numTrees featureMix_features featureMix_offsetFeatures featureMix_offsetDifferenceFeatures ";
-        std::cout << "maxOffset treeDepth splitNodeSize howToSmoothProbMaps sampleFraction numAAMsteps useAllImagesAtEveryLevel" << std::endl;
+        std::cout << "maxOffset treeDepth splitNodeSize howToSmoothProbMaps sampleFraction numAAMsteps useAllImagesAtEveryLevel priorA1 priorA2 priorX priorY priorShape ";
+        std::cout << "priorAppearance numOffsets offsetScale AAMdataPath marginType numP numLambda" << std::endl;
         std::cout << "Aborting. " << std::endl;
 
         return 0;
@@ -124,27 +125,6 @@ int run_main(int argc, const char **argv)
         imagetools::getArrayOfFeaturesAndLabels(featPath, labelPath, rfFeaturesArray, rfLabelsArray, xy_dim, imgNumVector, rfFeaturesArraySize, sampling);
         // re-use above strategy to get grayscale images.  need some dummy variables.
         imagetools::getArrayOfRawImages(rawPath, rfRawImageArray, raw_dim, imgNumVector, rfFeaturesArraySize);
-
-        if ( 0 ) //(smooth_flag == 4){                                                                                                   NOTE: HARD-CODE THIS FOR NOW
-        {
-            // build AAM model for fitting
-            const char* AAMfnameList[12];
-            AAMfnameList[0]  = "120807_f0000";
-            AAMfnameList[1]  = "120807_f0005";
-            AAMfnameList[2]  = "120807_f0013";
-            AAMfnameList[3]  = "120807_f0018";
-            AAMfnameList[4]  = "120816_f0002";
-            AAMfnameList[5]  = "120816_f0007";
-            AAMfnameList[6]  = "120816_f0010";
-            AAMfnameList[7]  = "120816_f0016";
-            AAMfnameList[8]  = "120816_f0019";
-            AAMfnameList[9]  = "120804_f0010";
-            AAMfnameList[10] = "120804_f0012";
-            AAMfnameList[11] = "120804_f0019";
-
-            smoothingtools::buildAAM(AAMdataPath.c_str(), rfPath.c_str(), AAMfnameList, marginType, numP, numLambda);                   // note: saves model to rfPath (ie, with forest)
-        }
-
     } else if (loadRF_flag) {
         // load one image just to get xy_dim right
         std::vector<int> dummyImgNumVector;
@@ -219,10 +199,22 @@ int run_main(int argc, const char **argv)
         return -1;
     }
 
-    std::cout << "initialization succeeded!" << std::endl;
+    std::cout << "\nInitialization succeeded! \n" << std::endl;
 
     try
     {
+
+        if ( smooth_flag == 4 )
+        {
+            // build AAM model for fitting
+            ArrayVector<std::string> allImageNames;
+            imagetools::getListOfTrainingData(rawPath, allImageNames, imgNumVector);
+
+            if (useAllImagesAtEveryLevel == 1)
+                smoothingtools::buildAAM(AAMdataPath.c_str(), rfPath.c_str(), allImageNames, marginType, numP, numLambda, 1, 1);
+            else
+                smoothingtools::buildAAM(AAMdataPath.c_str(), rfPath.c_str(), allImageNames, marginType, numP, numLambda, 0, 1);
+        }
 
         // learn cascade --------------------------------->
 
@@ -252,6 +244,23 @@ int run_main(int argc, const char **argv)
                 imagetools::getArrayOfFeaturesAndLabels(featPath, labelPath, rfFeaturesArray, rfLabelsArray, xy_dim, imgNumVectorAtLevel, rfFeaturesArraySize, sampling);
                 // re-use above strategy to get grayscale images.  need some dummy variables.
                 imagetools::getArrayOfRawImages(rawPath, rfRawImageArray, raw_dim, imgNumVectorAtLevel, rfFeaturesArraySize);
+
+                if ( smooth_flag == 4 )
+                {
+                    std::vector<int> imgNotUsedAtLevel;
+                    // which images aren't used at this level
+                    for (int imgNumVectorIndx = 0; imgNumVectorIndx < imgNumVector.size(); ++imgNumVectorIndx){
+                        if( std::find(imgNumVectorAtLevel.begin(), imgNumVectorAtLevel.end(), imgNumVector[imgNumVectorIndx]) != imgNumVectorAtLevel.end() ) {}
+                        else
+                            imgNotUsedAtLevel.push_back(imgNumVector[imgNumVectorIndx]);
+                    }
+
+                    // build AAM model for fitting
+                    ArrayVector<std::string> ImageNamesNotUsedAtLevel;
+                    imagetools::getListOfTrainingData(rawPath, ImageNamesNotUsedAtLevel, imgNotUsedAtLevel);
+
+                    smoothingtools::buildAAM(AAMdataPath.c_str(), rfPath.c_str(), ImageNamesNotUsedAtLevel, marginType, numP, numLambda, 1, 0);
+                }
             }
 
             // some useful constants

@@ -52,29 +52,23 @@ public:
     }
     */
 
-    static void buildAAM(const char* dataPath, const char* outputPath, const char** fnameList, const int marginType=2, const int numP=1, const int numLambda=1)
+    static void buildAAM(const char* dataPath, const char* outputPath, ArrayVector<std::string> fnameList, const int marginType, const int numP, const int numLambda, const int saveModelForTraining, const int saveModelForTest)
     {
-//        mwArray mwDataPath(1, dataPath.length(), mxCHAR_CLASS);
+
+        // convert to matlab types
         mwArray mwDataPath = mwArray(dataPath);
+        mwArray mwOutputPath = mwArray(outputPath);
 
-//        mwArray mwOutputPath(1, outputPath.length(), mxCHAR_CLASS);
-        mwArray mwOutputPath = outputPath;
+        mwArray mwFnameList(1, fnameList.size(), mxCELL_CLASS);
+        for (int i = 0; i < fnameList.size(); ++i)
+            mwFnameList(i+1) = fnameList[i].c_str();
 
-        // hard-code the length for now
-        mwArray mwFnameList(12, fnameList);
-//        for (int i = 0; i < fnameList.size(); ++i)
-//            mwFnameList(i+1) = fnameList[i];
+        mwArray mwMarginType = mwArray(marginType);
+        mwArray mwNumP = mwArray(numP);
+        mwArray mwNumLambda = mwArray(numLambda);
 
-        mwArray mwMarginType;
-        mwMarginType = mwArray(marginType);
+        buildAllModels(mwDataPath, mwFnameList, mwMarginType, mwNumP, mwNumLambda, mwOutputPath, mwArray(saveModelForTraining), mwArray(saveModelForTest));
 
-        mwArray mwNumP;
-        mwNumP = mwArray(numP);
-
-        mwArray mwNumLambda;
-        mwNumLambda = mwArray(numLambda);
-
-        buildAllModels(mwDataPath, mwFnameList, mwMarginType, mwNumP, mwNumLambda, mwOutputPath);
     }
 
 
