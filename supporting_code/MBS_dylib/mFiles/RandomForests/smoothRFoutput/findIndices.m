@@ -18,6 +18,6 @@ end
 
 % debug warning.
 if (length(unique(indx)) ~= length(indx))
-    display(strcat('repeated filename in "buildRigidBackboneModel.m".  Number of unique filenames is: ',num2str(length(unique(indx)))))
+    display(strcat('repeated data_position combinations in "buildRigidBackboneModel.m".  Number of unique filenames=',num2str(length(unique(indx)))))
     indx = unique(indx);
 end

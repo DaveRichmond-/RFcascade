@@ -1,4 +1,4 @@
-function [q_init, p_init] = initializeAAMperSegment(dataPath, fname_list, modelCentroids, modelSegmentsAAM)
+function [q_init, p_init] = initializeAAMperSegment(dataPath, indx, modelCentroids, modelSegmentsAAM)
 
 %
 
@@ -7,7 +7,6 @@ load(strcat(dataPath, '/allSomitePositions.mat'));
 load(strcat(dataPath, '/dataForInitialization.mat'));
 
 %
-indx = findIndices(dataPath, fname_list);
 centroids = all_centroids_unregistered(:,:,indx);
 pos = pos(:,:,:,indx);
 

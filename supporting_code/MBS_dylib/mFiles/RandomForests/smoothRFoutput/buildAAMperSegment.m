@@ -1,4 +1,4 @@
-function [modelSegmentsAAM] = buildAAMperSegment(dataPath, fname_list, marginType, num_p, num_lambda)
+function [modelSegmentsAAM] = buildAAMperSegment(dataPath, indx, marginType, num_p, num_lambda)
 
 %
 
@@ -6,9 +6,6 @@ function [modelSegmentsAAM] = buildAAMperSegment(dataPath, fname_list, marginTyp
 
 % load all data for shape model, and complete list of corresponding images
 load(strcat(dataPath, '/dataForShapeModel.mat'));
-
-%
-indx = findIndices(dataPath, fname_list);
 
 % select out data to build model
 xvec = all_xvec(:,:,indx);

@@ -19,7 +19,7 @@ output_flag = 0;
 
 % load model
 load(strcat(modelPath,'/modelForSmoothing.mat'));
-load('/Users/richmond/Data/Somites/ModelForSmoothing/centroidPositionStats.mat');
+% load('/Users/richmond/Data/Somites/ModelForSmoothing/centroidPositionStats.mat');
 
 % reshape grayImage and probMap (passed in as row vector)
 grayImage = reshape(grayImage, [grayImageShape(1), grayImageShape(2)]);

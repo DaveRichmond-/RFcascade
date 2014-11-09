@@ -1,19 +1,45 @@
-%% get stats on centroid positions for MLE Gaussian Model
+function [mu, s2] = getCentroidRelativePositionStats(dataPath, indx)
 
-load('/Users/richmond/Data/Somites/ModelForSmoothing/centroids_forStats/gtCentroids.mat');
+% get stats on centroid positions for MLE Gaussian Model
 
-centroids = train_gtCentroid;
+% load all data for models
+load(strcat(dataPath, '/allSomitePositions.mat'));
 
-clear train_gtCentroid;
-clear test_gtCentroid;
+% select out data to build model
+posForStats = pos(:,:,:,indx);
 
-diff_centroids = diff(centroids, 1, 1);
+centers = zeros(size(posForStats,3), 2, size(posForStats,4));
+for j = 1:size(posForStats,4)
+    
+    for i = 1:size(posForStats,3)
+        
+        centers(i,:,j) = squeeze((posForStats(:,4,i,j) + posForStats(:,8,i,j)) / 2);
 
-dist_centroids = sqrt(sum(diff_centroids.^2,2));
+    end
+end
 
-mu = mean(dist_centroids, 3);
-s2 = var(dist_centroids, 0, 3);
+diff_centers = diff(centers, 1, 1);
 
-save('/Users/richmond/Data/Somites/ModelForSmoothing/centroids_forStats/centroidPositionStats.mat', 'mu', 's2');
+dist_centers = squeeze(sqrt(sum(diff_centers.^2,2)));
 
-% clear all
+mu = mean(dist_centers, 2);
+s2 = var(dist_centers, 0, 2);
+
+
+
+% old solution, but uses CoM rather than center between landmarks 4 and 8.  not consistent with distance calculated from FitMasks.
+%{
+% load all data for models
+load(strcat(dataPath, '/dataForBBM.mat'));
+
+% select out data to build model
+centroidsForStats = allCentroids(:,:,indx);
+
+diff_centroids = diff(centroidsForStats, 1, 1);
+
+dist_centroids = squeeze(sqrt(sum(diff_centroids.^2,2)));
+
+mu = mean(dist_centroids, 2);
+s2 = var(dist_centroids, 0, 2);
+
+%}

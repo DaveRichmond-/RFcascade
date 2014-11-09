@@ -1,13 +1,10 @@
-function [rigidModel] = buildRigidBackboneModel(dataPath, fname_list)
+function [rigidModel] = buildRigidBackboneModel(dataPath, indx)
 
 % modelPath: specifies path to rigidBackboneModel.mat, which stores centroids positions of all gt data, 
 % as well as the corresponding filenames that each comes from
 
 % load all data for models, and complete list of corresponding images
 load(strcat(dataPath, '/dataForBBM.mat'));
-
-%
-indx = findIndices(dataPath, fname_list);
 
 % select out data to build model
 centroidsForModel = allCentroids(:,:,indx);
