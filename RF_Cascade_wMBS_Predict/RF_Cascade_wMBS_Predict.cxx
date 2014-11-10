@@ -123,6 +123,7 @@ int run_main(int argc, const char **argv)
 
     // initialize matlab compiler runtime --------------------------------->
 
+    if (smooth_flag != 0 && smooth_flag!=5 ){
     // Initialize the MATLAB Compiler Runtime global state
     if (!mclInitializeApplication(NULL,0))
     {
@@ -138,7 +139,7 @@ int run_main(int argc, const char **argv)
                   << std::endl;
         return -1;
     }
-
+}
     std::cout << "initialization succeeded!" << std::endl;
 
     try
@@ -219,6 +220,8 @@ int run_main(int argc, const char **argv)
                 } else if ( smooth_flag == 4 ){
                     MultiArray<2, int> MAPLabels;     // for now, just throw away the MAPLabels
                     smoothingtools::AAM_perSomite_Inference_2inits<ImageType>(rfPath.c_str(), probArray[k], rawImageArray[k], smoothProbArray[k], MAPLabels, priorStrength, numOffsets, offsetScale, sampling, numGDsteps, lambdaU, lambdaPW);
+                } else if (smooth_flag == 5 ) {
+                    smoothingtools::GeodesicSmoothing<ImageType>(probArray[k], rawImageArray[k], smoothProbArray[k], num_images, xy_dim, sampling, 20);
                 }
             }
             // toc

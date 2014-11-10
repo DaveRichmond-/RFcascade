@@ -340,6 +340,8 @@ int run_main(int argc, const char **argv)
                     } else if ( smooth_flag == 4 ){
                         MultiArray<2, int> MAPLabels;     // for now, just throw away the MAPLabels
                         smoothingtools::AAM_perSomite_Inference_2inits<ImageType>(rfPath.c_str(), probArray[k], rawImageArray[k], smoothProbArray[k], MAPLabels, priorStrength, numOffsets, offsetScale, sampling, numGDsteps, lambdaU, lambdaPW);
+                    } else if (smooth_flag == 5 ) {
+                        smoothingtools::GeodesicSmoothing(probArray[k], rawImageArray[k], smoothProbArray[k], num_images_per_level, xy_dim, sampling, 20);
                     }
 
                 }
