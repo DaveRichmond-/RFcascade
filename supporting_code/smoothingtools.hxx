@@ -13,6 +13,19 @@
 #include "inferencetools.hxx"
 
 using namespace vigra;
+using namespace vigra::multi_math;
+
+#include <boost/graph/push_relabel_max_flow.hpp>
+#include <boost/graph/adjacency_list.hpp>
+
+#include <boost/graph/graph_traits.hpp>
+#include <boost/graph/dijkstra_shortest_paths.hpp>
+
+#include <vigra/convolution.hxx>
+#include <vigra/multi_impex.hxx>
+#include <vigra/basicgeometry.hxx>
+
+using namespace boost;
 
 class smoothingtools
 {
@@ -200,6 +213,168 @@ public:
         // get data out of mwArray
         smoothProbStack.reshape(Shape3(probStack.size(0), probStack.size(1), probStack.size(2)));
         matlabToVigra_Array(mwSmoothProbs, smoothProbStack);
+    }
+
+    template <class T1>
+    static void GeodesicSmoothing(const MultiArray<3, T1> & probStack, const MultiArray<3, T1> & rawImage, MultiArray<3, T1> & smoothProbStack, int num_images, Shape2 xy_dim, int sampling, float maxDist=10)
+    {
+        std::cout << "running geodesic smoothing..." << std::endl;
+
+        int num_classes=probStack.size(2);
+
+        smoothProbStack.copy(probStack);
+        // for each pixel p
+
+            // for each class
+
+        float sigma2=0.2;//0.02;//2;//0.2;
+        float nu=1;
+        float sigmaGrad=3;
+
+        T1 pixelDistFactor = 0.001;//0;//0.2;
+        T1 gradMagWeight=0.1;//0.05;
+
+        int num_pixels=xy_dim[0]*xy_dim[1];
+
+        // always the same: pixel seed image (don't need it for graph, really...)
+/*        MultiArray<2, T1> pixelSeed(0);
+        pixelSeed.reshape(Shape2(xy_dim[0],xy_dim[1]),0);
+        pixelSeed(p)=1;
+*/
+        // Map = nu*(1-prob(class,x))
+        MultiArray<3, T1> MaskImgStack = nu*(1-probStack);
+
+        int excerptRadius=maxDist;
+        int excerptSize=2*excerptRadius+1;
+
+        typedef adjacency_list < listS, vecS, directedS,
+        no_property, property < edge_weight_t, float > > graph_t;
+        typedef graph_traits < graph_t >::vertex_descriptor vertex_descriptor;
+        typedef graph_traits < graph_t >::edge_descriptor edge_descriptor;
+        typedef std::pair<int, int> Edge;
+        const int num_nodes = excerptSize*excerptSize;
+        const int max_num_edges = num_nodes*8;
+        Edge* edge_array = new Edge[max_num_edges];
+        T1* weight = new T1[max_num_edges];
+
+        MultiArray<2, T1> geoDistOfPixel(0);
+        geoDistOfPixel.reshape(Shape2(excerptSize,excerptSize),0);
+
+        MultiArray<2, T1> backgroundProb = probStack.bindOuter(0);
+        MultiArray<2, T1> rawImage2d = rawImage.bindOuter(0);
+        MultiArray<2, T1> gradMagImageFull;
+        gradMagImageFull.reshape(rawImage2d.shape());
+
+//        for (int k=0; k<num_images; ++k){
+
+        // debug output:
+        gaussianGradientMagnitude( rawImage2d,gradMagImageFull,sigmaGrad);
+        MultiArray<2, T1> gradMagImage;
+        gradMagImage.reshape(ceil(1./sampling*gradMagImageFull.shape()));
+        resampleImage(gradMagImageFull,gradMagImage,1./sampling);
+        exportImage(gradMagImage, "/Users/kainmull/testGradMag.tif");
+
+        // iterate over pixels...
+        for (int x=excerptRadius; x<xy_dim[0]-excerptRadius; x++) {
+//            std::cout << "smoothing pixel (x,.)" << x << " " << std::endl;
+            for (int y=excerptRadius; y<xy_dim[1]-excerptRadius; y++) {
+
+                // check if we need it for that pixel --- prob threshold in background prob image
+                bool doPixel = backgroundProb(x,y) < 0.9 ;
+                if (!doPixel) continue;
+
+                // geo dist transform in raw image (downsampled!! max distance!!)
+                // get excerpt of gradMagImage:
+                MultiArray<2, T1> gradMagExcerpt = gradMagWeight*gradMagImage.subarray(Shape2(x-excerptRadius,y-excerptRadius), Shape2(x+excerptRadius+1,y+excerptRadius+1));
+                if (x==43 && y==150)
+                   exportImage(gradMagExcerpt, "/Users/kainmull/testGradMagExcerpt.tif");
+
+                // build graph:
+
+                int edge_count=0;
+                for (int excX=0; excX<excerptSize; excX++)
+                for (int excY=0; excY<excerptSize; excY++) {
+                    // edges and weights
+                    // edges in x-dir: -1, +1
+                    // edges in y dir: -1, +1
+                    for (int dx=-1; dx<2; dx++)
+                    for (int dy=-1; dy<2; dy++) {
+                        if (dx==0 && dy==0) continue;
+                        int nx=excX+dx;
+                        int ny=excY+dy;
+                        if (nx<0 || nx>=excerptSize) continue;
+                        if (ny<0 || ny>=excerptSize) continue;
+
+                        edge_array[edge_count]=Edge(excX*excerptSize+excY,nx*excerptSize+ny);
+                        T1 pixelDist = (dx==0 || dy==0)?sampling:sampling*std::sqrt(2);
+                        weight[edge_count]=(sq(gradMagExcerpt(nx,ny))+pixelDistFactor)*pixelDist;
+                        if (weight[edge_count]<0) {
+                            std::cout << " weight below 0!! " << std::endl;
+                        }
+                        edge_count++;
+
+                    }
+                }
+// done build graph. optimize:
+                    //optimize
+                graph_t g(num_nodes);
+                property_map<graph_t, edge_weight_t>::type weightmap = get(edge_weight, g);
+                for (std::size_t j = 0; j < edge_count; ++j) {
+                    edge_descriptor e; bool inserted;
+                    tie(e, inserted) = add_edge(edge_array[j].first, edge_array[j].second, g);
+                    weightmap[e] = weight[j];
+                }
+
+                std::vector<vertex_descriptor> p_vec(num_vertices(g));
+                std::vector<T1> d_vec(num_vertices(g));
+                vertex_descriptor s = vertex(num_nodes/2, g);
+
+                property_map<graph_t, vertex_index_t>::type indexmap = get(vertex_index, g);
+                dijkstra_shortest_paths(g, s, &p_vec[0], &d_vec[0], weightmap, indexmap,
+                                  std::less<T1>(), closed_plus<T1>(),
+                                  (std::numeric_limits<T1>::max)(), 0,
+                                  default_dijkstra_visitor());
+
+                //write result into geoDistOfPixel
+
+                for (int excX=0; excX<excerptSize; excX++)
+                for (int excY=0; excY<excerptSize; excY++) {
+                    geoDistOfPixel(excX,excY)=d_vec[excX*excerptSize+excY];
+                }
+
+                if (x==43 && y==150)
+                   exportImage(geoDistOfPixel, "/Users/kainmull/testGeoDist.tif");
+ //               return;
+
+                float ZnoBkg=0;
+                for (int c=1; c<num_classes; ++c){
+
+                    // Q= geoDist+MaskImgStack
+                    MultiArray<2, T1> maskImgExcerpt = (MaskImgStack.bindOuter(c)).subarray(Shape2(x-excerptRadius,y-excerptRadius), Shape2(x+excerptRadius+1,y+excerptRadius+1));
+                    MultiArray<2, T1> Qimg = geoDistOfPixel + maskImgExcerpt;
+                    if (x==43 && y==150 && c==7) {
+                       exportImage(Qimg, "/Users/kainmull/testQImg.tif");
+                       exportImage(maskImgExcerpt, "/Users/kainmull/testMaskImg.tif");
+                    }
+                    T1 minQ[1];
+                    T1 maxQ[1];
+                    Qimg.minmax(minQ,maxQ);
+
+                    T1 pNew=probStack(x,y,c)*exp(-1.0*sq(minQ[0])/sigma2 );
+                    //T1 pNew=exp(-1.0*sq(minQ[0])/sigma2 );
+                    // prob_new(class,p) = prob(class,p)*e-(Q/sigma)square
+//                    std::cout << "c p pNew " << c << " " << probStack(x,y,c) << " " << pNew << std::endl;
+                    smoothProbStack(x,y,c) = pNew;
+                    ZnoBkg+=pNew;
+
+                }
+                //normalize classes...
+                for (int c=1; c<num_classes; ++c){
+                    smoothProbStack(x,y,c) /= ZnoBkg;
+                    smoothProbStack(x,y,c) *= (1-smoothProbStack(x,y,0));
+                }
+            }
+        }
     }
 
     template <class T1>
