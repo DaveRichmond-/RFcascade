@@ -323,7 +323,7 @@ int run_main(int argc, const char **argv)
                         if ( useWeightedRFsmoothing == 1 )
                         {
                             // output weighted probs
-                            std::string fname3(outputPath + "/" + "level#" + std::to_string(j) + "_image#" + std::to_string(img_indx) + "_weightedProbs");
+                            std::string fname3(outputPath + "/" + "level#" + std::to_string(i) + "_image#" + std::to_string(img_indx) + "_weightedProbs");
                             VolumeExportInfo Export_info3(fname3.c_str(), ".tif");
                             exportVolume(weightedProbArray[img_indx], Export_info3);
                         }

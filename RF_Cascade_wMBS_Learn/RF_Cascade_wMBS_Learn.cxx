@@ -189,6 +189,7 @@ int run_main(int argc, const char **argv)
         std::cout << "\n" << "check rf parameters after load" << std::endl;
         std::cout << "tree count: "  << rf_cascade[0].tree_count()  << std::endl;
         std::cout << "class count: " << rf_cascade[0].class_count() << std::endl;
+        std::cout << "number of levels: " << rf_cascade.size() << std::endl;
     }
     else
     {
