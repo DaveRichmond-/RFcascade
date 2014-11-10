@@ -54,9 +54,18 @@ priorShape=1
 priorAppearance=0
 numOffsets=5
 offsetScale=1.0
+
+# model parameters
 marginType=1
 numP=1
 numLambda=1
+
+# tree weighting:
+weightedProbsMode=2
+weightedProbsLambda0=4
+weightedProbsLambda1=4
+weightedProbsLambda2=4
+useWeightedRFsmoothing=0
 
 ############# Testing: #############
 
@@ -96,10 +105,10 @@ export DYLD_LIBRARY_PATH=./supporting_code/MBS_dylib
 echo " "
 echo running Learn
 echo " "
-echo ./RF_Cascade_wMBS_Learn-build/RF_Cascade_wMBS_Learn $baseTrainInputPath $baseTrainResultPath $rawPathTrain $featurePathTrain $labelPathTrain $resultPathTrain $useExistingForest $numImagesTrain $numLevels $reSampleBy $numClasses $numTrees $featureMix_features $featureMix_offsetFeatures $featureMix_offsetDifferenceFeatures $maxOffset $treeDepth $splitNodeSize $howToSmoothProbMaps $sampleFraction $numAAMsteps $useAllImagesAtEveryLevel $priorA1 $priorA2 $priorX $priorY $priorShape $priorAppearance $numOffsets $offsetScale $AAMdataPath $marginType $numP $numLambda
+echo ./RF_Cascade_wMBS_Learn-build/RF_Cascade_wMBS_Learn $baseTrainInputPath $baseTrainResultPath $rawPathTrain $featurePathTrain $labelPathTrain $resultPathTrain $useExistingForest $numImagesTrain $numLevels $reSampleBy $numClasses $numTrees $featureMix_features $featureMix_offsetFeatures $featureMix_offsetDifferenceFeatures $maxOffset $treeDepth $splitNodeSize $howToSmoothProbMaps $sampleFraction $numAAMsteps $useAllImagesAtEveryLevel $priorA1 $priorA2 $priorX $priorY $priorShape $priorAppearance $numOffsets $offsetScale $AAMdataPath $marginType $numP $numLambda $weightedProbsMode $weightedProbsLambda0 $weightedProbsLambda1 $weightedProbsLambda2 $useWeightedRFsmoothing
 echo " "
 
-./RF_Cascade_wMBS_Learn-build/RF_Cascade_wMBS_Learn $baseTrainInputPath $baseTrainResultPath $rawPathTrain $featurePathTrain $labelPathTrain $resultPathTrain $useExistingForest $numImagesTrain $numLevels $reSampleBy $numClasses $numTrees $featureMix_features $featureMix_offsetFeatures $featureMix_offsetDifferenceFeatures $maxOffset $treeDepth $splitNodeSize $howToSmoothProbMaps $sampleFraction $numAAMsteps $useAllImagesAtEveryLevel $priorA1 $priorA2 $priorX $priorY $priorShape $priorAppearance $numOffsets $offsetScale $AAMdataPath $marginType $numP $numLambda
+./RF_Cascade_wMBS_Learn-build/RF_Cascade_wMBS_Learn $baseTrainInputPath $baseTrainResultPath $rawPathTrain $featurePathTrain $labelPathTrain $resultPathTrain $useExistingForest $numImagesTrain $numLevels $reSampleBy $numClasses $numTrees $featureMix_features $featureMix_offsetFeatures $featureMix_offsetDifferenceFeatures $maxOffset $treeDepth $splitNodeSize $howToSmoothProbMaps $sampleFraction $numAAMsteps $useAllImagesAtEveryLevel $priorA1 $priorA2 $priorX $priorY $priorShape $priorAppearance $numOffsets $offsetScale $AAMdataPath $marginType $numP $numLambda $weightedProbsMode $weightedProbsLambda0 $weightedProbsLambda1 $weightedProbsLambda2 $useWeightedRFsmoothing
 
 echo creating dir $baseTestResultPath$resultPathTest
 echo " "
@@ -116,16 +125,19 @@ cp ./$me $baseTestResultPath$resultPathTest
 
 echo " "
 echo cp $baseTrainResultPath$resultPathTrain/$rfName $baseTestResultPath/$resultPathTest$rfName
+cp $baseTrainResultPath$resultPathTrain/$rfName $baseTestResultPath/$resultPathTest$rfName
 
-# cp $baseTrainResultPath$resultPathTrain/$rfName $baseTestResultPath/$resultPathTest$rfName
+echo " "
+echo cp $baseTrainResultPath$resultPathTrain/$modelForSmoothing_forTest $baseTestResultPath/$resultPathTest$modelForSmoothing
+cp $baseTrainResultPath$resultPathTrain/$modelForSmoothing_forTest $baseTestResultPath/$resultPathTest$modelForSmoothing
 
 echo " "
 echo running Predict
 echo " "
-echo ./RF_Cascade_wMBS_Predict-build/RF_Cascade_wMBS_Predict $baseTestInputPath $baseTestResultPath $rawPathTest $featurePathTest $labelPathTest $resultPathTest $rfName $numImagesTest $resampleByTest $howToSmoothProbMaps $numAAMsteps $priorA1 $priorA2 $priorX $priorY $priorShape $priorAppearance $numOffsets $offsetScale
+echo ./RF_Cascade_wMBS_Predict-build/RF_Cascade_wMBS_Predict $baseTestInputPath $baseTestResultPath $rawPathTest $featurePathTest $labelPathTest $resultPathTest $rfName $numImagesTest $resampleByTest $howToSmoothProbMaps $numAAMsteps $priorA1 $priorA2 $priorX $priorY $priorShape $priorAppearance $numOffsets $offsetScale $weightedProbsMode $weightedProbsLambda0 $weightedProbsLambda1 $weightedProbsLambda2 $useWeightedRFsmoothing
 echo " "
 
-# ./RF_Cascade_wMBS_Predict-build/RF_Cascade_wMBS_Predict $baseTestInputPath $baseTestResultPath $rawPathTest $featurePathTest $labelPathTest $resultPathTest $rfName $numImagesTest $resampleByTest $howToSmoothProbMaps $numAAMsteps $priorA1 $priorA2 $priorX $priorY $priorShape $priorAppearance $numOffsets $offsetScale
+./RF_Cascade_wMBS_Predict-build/RF_Cascade_wMBS_Predict $baseTestInputPath $baseTestResultPath $rawPathTest $featurePathTest $labelPathTest $resultPathTest $rfName $numImagesTest $resampleByTest $howToSmoothProbMaps $numAAMsteps $priorA1 $priorA2 $priorX $priorY $priorShape $priorAppearance $numOffsets $offsetScale $weightedProbsMode $weightedProbsLambda0 $weightedProbsLambda1 $weightedProbsLambda2 $useWeightedRFsmoothing
 
 evalRF=evalRF/
 mkdir $baseTestResultPath$resultPathTest$evalRF
