@@ -55,8 +55,18 @@ int run_main(int argc, const char **argv)
     priorStrength(3) = atof(argv[15]);
     priorStrength(4) = atof(argv[16]);
     priorStrength(5) = atof(argv[17]);
+
     int numOffsets = atoi(argv[18]);
     double offsetScale = atof(argv[19]);
+
+    // params for re-weighting RF output by model
+    int weightedProbsMode = atoi(argv[20]);
+    std::vector<int> weightedProbsLambda(3);
+    weightedProbsLambda[0] = atoi(argv[21]);
+    weightedProbsLambda[1] = atoi(argv[22]);
+    weightedProbsLambda[2] = atoi(argv[23]);
+    int useWeightedRFsmoothing = atoi(argv[24]);
+
     float lambdaU = 4;
     float lambdaPW = 4;
 
@@ -229,10 +239,6 @@ int run_main(int argc, const char **argv)
 
             imagetools::imagesToProbs<ImageType>(smoothProbArray, smoothProbs);
 
-            // update train_features with current probability map, and smoothed probability map
-            rfFeatures_wProbs.subarray(Shape2(0,num_filt_features), Shape2(num_samples,num_filt_features+num_classes)) = probs;
-            rfFeatures_wProbs.subarray(Shape2(0,num_filt_features+num_classes), Shape2(num_samples,num_filt_features+2*num_classes)) = smoothProbs;
-
             // convert probs to labels
             MultiArray<2, UInt8> labels(Shape2(num_samples, 1));
             MultiArray<2, UInt8> smoothLabels(Shape2(num_samples, 1));
@@ -248,6 +254,32 @@ int run_main(int argc, const char **argv)
 
             ArrayVector<MultiArray<3, LabelType> > smoothLabelArray(num_images);
             imagetools::probsToImages<LabelType>(smoothLabels, smoothLabelArray, xy_dim);
+
+            // new
+            ArrayVector<MultiArray<3, ImageType> > weightedProbArray(num_images);
+            ArrayVector<MultiArray<3, LabelType> > weightedLabelArray(num_images);
+            if ( useWeightedRFsmoothing == 1)
+            {
+                //
+                MultiArray<2, float> weightedProbs;
+                MultiArray<2, LabelType> weightedLabels;
+                smoothingtools::weightedProbMap<ImageType, LabelType>(rfFeatures_wProbs, smoothLabels, rf_cascade[i], xy_dim, weightedProbsLambda[i], weightedProbsMode, weightedProbs, weightedLabels);
+                //
+                imagetools::probsToImages<ImageType>(weightedProbs, weightedProbArray, xy_dim);
+                imagetools::probsToImages<LabelType>(weightedLabels, weightedLabelArray, xy_dim);
+
+                // update train_features with current probability map, and smoothed probability map
+                rfFeatures_wProbs.subarray(Shape2(0,num_filt_features), Shape2(num_samples,num_filt_features+num_classes)) = probs;
+                rfFeatures_wProbs.subarray(Shape2(0,num_filt_features+num_classes), Shape2(num_samples,num_filt_features+2*num_classes)) = weightedProbs;
+                //
+            }
+            else
+            {
+                // update train_features with current probability map, and smoothed probability map
+                rfFeatures_wProbs.subarray(Shape2(0,num_filt_features), Shape2(num_samples,num_filt_features+num_classes)) = probs;
+                rfFeatures_wProbs.subarray(Shape2(0,num_filt_features+num_classes), Shape2(num_samples,num_filt_features+2*num_classes)) = smoothProbs;
+            }
+
 
             // repeat for gt labels
 //            ArrayVector<MultiArray<3, LabelType> > gtLabelArray(num_images);
@@ -265,6 +297,12 @@ int run_main(int argc, const char **argv)
                 VolumeExportInfo Export_info_smooth(fnameSmooth.c_str(),".tif");
                 exportVolume(smoothLabelArray[j], Export_info_smooth);
 
+                if ( useWeightedRFsmoothing == 1 )
+                {
+                    std::string fnameWeighted(outputPath + "/" + "image_weighted#" + image_idx + "_level#" + level_idx);
+                    VolumeExportInfo Export_info_weighted(fnameWeighted.c_str(),".tif");
+                    exportVolume(weightedLabelArray[j], Export_info_weighted);
+                }
             }
 
             // save probability maps
@@ -281,6 +319,14 @@ int run_main(int argc, const char **argv)
                         std::string fname2(outputPath + "/" + "level#" + std::to_string(i) + "_image#" + std::to_string(img_indx) + "_smoothProbs");
                         VolumeExportInfo Export_info2(fname2.c_str(), ".tif");
                         exportVolume(smoothProbArray[img_indx], Export_info2);
+
+                        if ( useWeightedRFsmoothing == 1 )
+                        {
+                            // output weighted probs
+                            std::string fname3(outputPath + "/" + "level#" + std::to_string(j) + "_image#" + std::to_string(img_indx) + "_weightedProbs");
+                            VolumeExportInfo Export_info3(fname3.c_str(), ".tif");
+                            exportVolume(weightedProbArray[img_indx], Export_info3);
+                        }
                     }
                 }
             }

@@ -77,6 +77,14 @@ int run_main(int argc, const char **argv)
     int numP = atoi(argv[33]);
     int numLambda = atoi(argv[34]);
 
+    // params for re-weighting RF output by model
+    int weightedProbsMode = atoi(argv[35]);
+    std::vector<int> weightedProbsLambda(3);
+    weightedProbsLambda[0] = atoi(argv[36]);
+    weightedProbsLambda[1] = atoi(argv[37]);
+    weightedProbsLambda[2] = atoi(argv[38]);
+    int useWeightedRFsmoothing = atoi(argv[39]);
+
     float lambdaU = 4;
     float lambdaPW = 4;
 
@@ -94,13 +102,19 @@ int run_main(int argc, const char **argv)
 
     // build order in which to use images:
     // std::srand ( unsigned ( std::time(0) ) );
-    int numRotations=2; //TODO: find out from filenames!
     std::vector<int> imgNumVector;
-    int numOrigImagesPerChunk=(num_images/num_levels)/numRotations;
-    for (int l=0; l<num_levels; ++l) {
-        for (int i=0; i<numOrigImagesPerChunk; i++){
-            for (int r=0; r<numRotations; r++ ) {
-                imgNumVector.push_back((num_levels*i+l)*numRotations+r); // 0 1 2 3 4 5 6 7 8 9 ...
+    if ( useAllImagesAtEveryLevel ) {
+        for (int i=0; i<num_images; i++){
+            imgNumVector.push_back(i); // 0 1 2 3 4 5 6 7 8 9 ...
+        }
+    } else {
+        int numRotations=1; //TODO: find out from filenames!
+        int numOrigImagesPerChunk=(num_images/num_levels)/numRotations;
+        for (int l=0; l<num_levels; ++l) {
+            for (int i=0; i<numOrigImagesPerChunk; i++){
+                for (int r=0; r<numRotations; r++ ) {
+                    imgNumVector.push_back((num_levels*i+l)*numRotations+r); // 0 1 2 3 4 5 6 7 8 9 ...
+                }
             }
         }
     }
@@ -342,9 +356,32 @@ int run_main(int argc, const char **argv)
                 */
                 imagetools::imagesToProbs<ImageType>(smoothProbArray, smoothProbs);
 
-                // update train_features with current probability map, and smoothed probability map
-                rfFeatures_wProbs.subarray(Shape2(0,num_filt_features), Shape2(num_samples,num_filt_features+num_classes)) = probs;
-                rfFeatures_wProbs.subarray(Shape2(0,num_filt_features+num_classes), Shape2(num_samples,num_filt_features+2*num_classes)) = smoothProbs;
+                ArrayVector<MultiArray<3, ImageType> > weightedProbArray(num_images_per_level);
+                if ( useWeightedRFsmoothing == 1)
+                {
+                    //
+                    MultiArray<2, UInt8> smoothLabels(Shape2(num_samples, 1));
+                    for (int k = 0; k < smoothProbs.size(0); ++k)
+                    {
+                        rf_cascade[j].ext_param_.to_classlabel(linalg::argMax(smoothProbs.subarray(Shape2(k,0), Shape2(k+1,num_classes))), smoothLabels[k]);
+                    }
+                    MultiArray<2, float> weightedProbs;
+                    MultiArray<2, LabelType> weightedLabels;
+                    smoothingtools::weightedProbMap<ImageType, LabelType>(rfFeatures_wProbs, smoothLabels, rf_cascade[j], xy_dim, weightedProbsLambda[j], weightedProbsMode, weightedProbs, weightedLabels);
+                    //
+                    imagetools::probsToImages<ImageType>(weightedProbs, weightedProbArray, xy_dim);
+
+                    // update train_features with current probability map, and smoothed probability map
+                    rfFeatures_wProbs.subarray(Shape2(0,num_filt_features), Shape2(num_samples,num_filt_features+num_classes)) = probs;
+                    rfFeatures_wProbs.subarray(Shape2(0,num_filt_features+num_classes), Shape2(num_samples,num_filt_features+2*num_classes)) = weightedProbs;
+                    //
+                }
+                else
+                {
+                    // update train_features with current probability map, and smoothed probability map
+                    rfFeatures_wProbs.subarray(Shape2(0,num_filt_features), Shape2(num_samples,num_filt_features+num_classes)) = probs;
+                    rfFeatures_wProbs.subarray(Shape2(0,num_filt_features+num_classes), Shape2(num_samples,num_filt_features+2*num_classes)) = smoothProbs;
+                }
 
                 // save probability maps
                 if ( 1 ) //(rf_cascade.size()-1) )
@@ -360,6 +397,14 @@ int run_main(int argc, const char **argv)
                             std::string fname2(outputPath + "/" + "level#" + std::to_string(j) + "_image#" + std::to_string(img_indx) + "_smoothProbs");
                             VolumeExportInfo Export_info2(fname2.c_str(), ".tif");
                             exportVolume(smoothProbArray[img_indx], Export_info2);
+
+                            if ( useWeightedRFsmoothing == 1 )
+                            {
+                                // output weighted probs
+                                std::string fname3(outputPath + "/" + "level#" + std::to_string(j) + "_image#" + std::to_string(img_indx) + "_weightedProbs");
+                                VolumeExportInfo Export_info3(fname3.c_str(), ".tif");
+                                exportVolume(weightedProbArray[img_indx], Export_info3);
+                            }
                         }
                     }
                 }
