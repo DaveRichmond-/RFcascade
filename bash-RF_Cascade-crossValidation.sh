@@ -10,8 +10,8 @@
 # for name in "Focused "*; do dummy=($name); mv "Focused "${dummy[1]} Focused_${dummy[1]}; done
 # for name in "feature-stack_Focused "*; do dummy=($name); mv "feature-stack_Focused "${dummy[1]} feature-stack_Focused_${dummy[1]}; done
 
-experimentID=201411071230
-batchScript=bash-RF_Cascade-my2.sh
+experimentID=201411090001
+batchScript=bash-RF_Cascade-my.sh
 
 # training data: "all"
 # _1.tif (orig), and 5 random rotations
@@ -23,15 +23,15 @@ batchScript=bash-RF_Cascade-my2.sh
 # append fold to experimentID
 
 numFolds=2
-numRotations=3 # = orig plus num-1
+numRotations=1 # = orig plus num-1
 maxRotations=6
 
-baseAllTrainInputPath=/Users/kainmull/Data/Somites/all/
+baseAllTrainInputPath=/Users/kainmull/Data/SomitesCopy/all/
 rawPathTrain=grayscale
 featurePathTrain=features
 labelPathTrain=labels
 
-baseAllTestInputPath=/Users/kainmull/Data/Somites/only_originals/
+baseAllTestInputPath=/Users/kainmull/Data/SomitesCopy/only_originals/
 rawPathTest=grayscale
 featurePathTest=features
 labelPathTest=labels

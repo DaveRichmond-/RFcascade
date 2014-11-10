@@ -12,7 +12,7 @@ numArgs=$(echo "$*" | wc -w)
 
 if [ $numArgs -eq 0 ]
 then
-    experimentID=201411061101
+    experimentID=201411072252_oldDataCopy-testGeoSmooth
 else
     experimentID=$1
 fi
@@ -20,32 +20,32 @@ echo $experimentID
 
 #############  Training: #############
 
-numImagesTrain=6
+numImagesTrain=12
 numTrees=20
 featureMix_features=1
 featureMix_offsetFeatures=5
 featureMix_offsetDifferenceFeatures=5
-treeDepth=15
+treeDepth=10
 splitNodeSize=10
-sampleFraction=0.05
-numAAMsteps=5
+sampleFraction=0.33
+numAAMsteps=50
 useAllImagesAtEveryLevel=1
 
 resultFolderName=Results
 resultPathTrain=$resultFolderName/Train$experimentID
-baseTrainInputPath=/Users/kainmull/Data/Somites/
-baseTrainResultPath=/Users/kainmull/Data/Somites/
+baseTrainInputPath=/Users/kainmull/Data/Somites_old/
+baseTrainResultPath=/Users/kainmull/Data/Somites_old/
 rawPathTrain=RawImages/Train
 featurePathTrain=Features/Train
 labelPathTrain=Labels/Train
 AAMdataPath=/Users/richmond/Data/gtSomites/dataForModels/
 
 useExistingForest=0
-numLevels=2
+numLevels=1 ####!!!!
 reSampleBy=3
 numClasses=22
 maxOffset=128
-howToSmoothProbMaps=3
+howToSmoothProbMaps=4
 priorA1=0.001
 priorA2=0.001
 priorX=0.0001
@@ -60,12 +60,12 @@ numLambda=1
 
 ############# Testing: #############
 
-numImagesTest=1
-resampleByTest=$reSampleBy
+numImagesTest=10
+resampleByTest=$reSampleBy ###!!!
 
 resultPathTest=$resultFolderName/Test$experimentID/
-baseTestInputPath=/Users/kainmull/Data/Somites/
-baseTestResultPath=/Users/kainmull/Data/Somites/
+baseTestInputPath=/Users/kainmull/Data/Somites_old/
+baseTestResultPath=/Users/kainmull/Data/Somites_old/
 rawPathTest=RawImages/Test
 featurePathTest=Features/Test
 labelPathTest=Labels/Test
@@ -117,7 +117,7 @@ cp ./$me $baseTestResultPath$resultPathTest
 echo " "
 echo cp $baseTrainResultPath$resultPathTrain/$rfName $baseTestResultPath/$resultPathTest$rfName
 
-cp $baseTrainResultPath$resultPathTrain/$rfName $baseTestResultPath/$resultPathTest$rfName
+# cp $baseTrainResultPath$resultPathTrain/$rfName $baseTestResultPath/$resultPathTest$rfName
 
 echo " "
 echo running Predict
@@ -125,15 +125,49 @@ echo " "
 echo ./RF_Cascade_wMBS_Predict-build/RF_Cascade_wMBS_Predict $baseTestInputPath $baseTestResultPath $rawPathTest $featurePathTest $labelPathTest $resultPathTest $rfName $numImagesTest $resampleByTest $howToSmoothProbMaps $numAAMsteps $priorA1 $priorA2 $priorX $priorY $priorShape $priorAppearance $numOffsets $offsetScale
 echo " "
 
-./RF_Cascade_wMBS_Predict-build/RF_Cascade_wMBS_Predict $baseTestInputPath $baseTestResultPath $rawPathTest $featurePathTest $labelPathTest $resultPathTest $rfName $numImagesTest $resampleByTest $howToSmoothProbMaps $numAAMsteps $priorA1 $priorA2 $priorX $priorY $priorShape $priorAppearance $numOffsets $offsetScale
+# ./RF_Cascade_wMBS_Predict-build/RF_Cascade_wMBS_Predict $baseTestInputPath $baseTestResultPath $rawPathTest $featurePathTest $labelPathTest $resultPathTest $rfName $numImagesTest $resampleByTest $howToSmoothProbMaps $numAAMsteps $priorA1 $priorA2 $priorX $priorY $priorShape $priorAppearance $numOffsets $offsetScale
+
+evalRF=evalRF/
+mkdir $baseTestResultPath$resultPathTest$evalRF
+image="image#"
+for name in $baseTestResultPath$resultPathTest$image*.tif
+do
+    cp $name $baseTestResultPath$resultPathTest$evalRF
+done
+
+evalSmooth=evalSmooth/
+mkdir $baseTestResultPath$resultPathTest$evalSmooth
+imageSmooth="image_smooth"
+for name in $baseTestResultPath$resultPathTest$imageSmooth*.tif
+do
+cp $name $baseTestResultPath$resultPathTest$evalSmooth
+done
 
 echo " "
 echo running Dice
 echo " "
-echo ./DiceScore-build/DiceScore $gtPath $baseTestResultPath $resultPathTest $numLevels $numImagesTest $numClasses
+echo ./DiceScore-build/DiceScore $gtPath $baseTestResultPath $resultPathTest$evalRF $numLevels $numImagesTest $numClasses
 echo " "
+./DiceScore-build/DiceScore $gtPath $baseTestResultPath $resultPathTest$evalRF $numLevels $numImagesTest $numClasses
 
-./DiceScore-build/DiceScore $gtPath $baseTestResultPath $resultPathTest $numLevels $numImagesTest $numClasses
+echo " "
+echo running Rscript
+echo " "
+echo Rscript ./supporting_code/boxplotsInR.R $baseTestResultPath$resultPathTest$evalRF
+echo " "
+Rscript ./supporting_code/boxplotsInR.R $baseTestResultPath$resultPathTest$evalRF
 
-Rscript ./supporting_code/boxplotsInR.R $baseTestResultPath$resultPathTest
+echo " "
+echo running Dice
+echo " "
+echo ./DiceScore-build/DiceScore $gtPath $baseTestResultPath $resultPathTest$evalSmooth $numLevels $numImagesTest $numClasses
+echo " "
+./DiceScore-build/DiceScore $gtPath $baseTestResultPath $resultPathTest$evalSmooth $numLevels $numImagesTest $numClasses
+
+echo " "
+echo running Rscript
+echo " "
+echo Rscript ./supporting_code/boxplotsInR.R $baseTestResultPath$resultPathTest$evalSmooth
+echo " "
+Rscript ./supporting_code/boxplotsInR.R $baseTestResultPath$resultPathTest$evalSmooth
 
