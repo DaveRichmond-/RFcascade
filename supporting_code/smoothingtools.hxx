@@ -895,7 +895,7 @@ public:
                 // normalize
                 for(int l=0; l< num_classes; ++l)
                 {
-                    probs(0, l) /= detail::RequiresExplicitCast<float>::cast(totalWeight);
+                    probs(0, l) /= vigra::detail::RequiresExplicitCast<float>::cast(totalWeight);
                 }
 
                 // calculate some fancy weights
