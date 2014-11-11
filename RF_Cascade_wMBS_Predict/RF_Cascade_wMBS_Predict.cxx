@@ -297,7 +297,7 @@ int run_main(int argc, const char **argv)
             {
                 std::string nameDummy="#";
                 if (j<10) {
-                    std::string nameDummy="#0";
+                    nameDummy="#0";
                 }
                 std::string image_idx = std::to_string(j);
                 std::string fname(outputPath + "/" + "image" + nameDummy + image_idx + "_level#" + level_idx);
@@ -323,7 +323,7 @@ int run_main(int argc, const char **argv)
                 {
                     std::string imageNameDummy="_image#";
                     if (img_indx<10) {
-                        std::string imageNameDummy="_image#0";
+                        imageNameDummy="_image#0";
                     }
 
                     std::string fname(outputPath + "/" + "level#" + std::to_string(i) + imageNameDummy + std::to_string(img_indx) + "_probs");
