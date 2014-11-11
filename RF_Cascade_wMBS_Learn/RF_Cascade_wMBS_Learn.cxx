@@ -117,6 +117,11 @@ int run_main(int argc, const char **argv)
                 }
             }
         }
+        if (imgNumVector.size()<num_images) {
+            for (int i=imgNumVector.size(); i<num_images; i++){
+                imgNumVector.push_back(i);
+            }
+        }
     }
     // std::random_shuffle ( imgNumVector.begin(), imgNumVector.end() );
     std::cout << "image order: ";
@@ -248,6 +253,7 @@ int run_main(int argc, const char **argv)
                 // pick the right entries from randVector:
                 int a=i*num_images/num_levels;
                 int b=(i+1)*num_images/num_levels;
+                if (i==num_levels-1) b = num_images-1;
 
                 std::vector<int> imgNumVectorAtLevel(&imgNumVector[a],&imgNumVector[b]);
                 std::cout << "level " << i << " image order: ";
@@ -332,19 +338,19 @@ int run_main(int argc, const char **argv)
                     else if ( smooth_flag  == 1 )
                         smoothingtools::AAM_MBS<ImageType>(probArray[k], rawImageArray[k], smoothProbArray[k], priorStrength, numOffsets, offsetScale, sampling, numGDsteps, lambdaU);
                     else if ( smooth_flag == 2 ){
-                        MultiArray<2, int> MAPLabels;     // for now, just throw away the MAPLabels
+                        MultiArray<2, UInt8> MAPLabels;     // for now, just throw away the MAPLabels
                         smoothingtools::AAM_Inference<ImageType>(probArray[k], rawImageArray[k], smoothProbArray[k], MAPLabels, priorStrength, numOffsets, offsetScale, sampling, numGDsteps, lambdaU, lambdaPW);
                     } else if ( smooth_flag == 3 ){
-                        MultiArray<2, int> MAPLabels;     // for now, just throw away the MAPLabels
+                        MultiArray<2, UInt8> MAPLabels;     // for now, just throw away the MAPLabels
                         smoothingtools::AAM_Inference_2inits<ImageType>(probArray[k], rawImageArray[k], smoothProbArray[k], MAPLabels, priorStrength, numOffsets, offsetScale, sampling, numGDsteps, lambdaU, lambdaPW);
                     } else if ( smooth_flag == 4 ){
-                        MultiArray<2, int> MAPLabels;     // for now, just throw away the MAPLabels
+                        MultiArray<2, UInt8> MAPLabels;     // for now, just throw away the MAPLabels
                         smoothingtools::AAM_perSomite_Inference_2inits<ImageType>(rfPath.c_str(), probArray[k], rawImageArray[k], smoothProbArray[k], MAPLabels, priorStrength, numOffsets, offsetScale, sampling, numGDsteps, lambdaU, lambdaPW);
                     } else if (smooth_flag == 5 ) {
                         smoothingtools::GeodesicSmoothing(probArray[k], rawImageArray[k], smoothProbArray[k], num_images_per_level, xy_dim, sampling, 20);
                     } else if (smooth_flag == 6 ) {
                         // mimic AAM w/o inference
-                        MultiArray<2, int> MAPLabels;     // for now, just throw away the MAPLabels
+                        MultiArray<2, UInt8> MAPLabels;     // for now, just throw away the MAPLabels
                         smoothingtools::AAM_perSomite_Inference_2inits<ImageType>(rfPath.c_str(), probArray[k], rawImageArray[k], smoothProbArray[k], MAPLabels, priorStrength, numOffsets, offsetScale, sampling, numGDsteps, 4, 1);
                     }
 
