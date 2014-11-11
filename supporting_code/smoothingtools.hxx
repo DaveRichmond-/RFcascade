@@ -86,7 +86,7 @@ public:
 
 
     template <class T1>
-    static void AAM_perSomite_Inference_2inits(const char* modelPath, const MultiArray<3, T1> & probStack, const MultiArray<3, T1> & rawImage, MultiArray<3, T1> & margProbStack, MultiArray<2, int> & MAPLabels, MultiArray<1, double> priorStrength, int numOffsets=5, double offsetScale=1.0, int sampling=1, int numGDsteps=50, float lambdaU=4, float lambdaPW=4)
+    static void AAM_perSomite_Inference_2inits(const char* modelPath, const MultiArray<3, T1> & probStack, const MultiArray<3, T1> & rawImage, MultiArray<3, T1> & margProbStack, MultiArray<2, UInt8> & MAPLabels, MultiArray<1, double> priorStrength, int numOffsets=5, double offsetScale=1.0, int sampling=1, int numGDsteps=50, float lambdaU=4, float lambdaPW=4)
     {
 
         // useful constants
@@ -378,7 +378,7 @@ public:
     }
 
     template <class T1>
-    static void AAM_Inference(const MultiArray<3, T1> & probStack, const MultiArray<3, T1> & rawImage, MultiArray<3, T1> & margProbStack, MultiArray<2, int> & MAPLabels,  MultiArray<1, double> priorStrength, int numOffsets=5, double offsetScale=1.0, int sampling=1, int numGDsteps=50, float lambdaU=4, float lambdaPW=4)
+    static void AAM_Inference(const MultiArray<3, T1> & probStack, const MultiArray<3, T1> & rawImage, MultiArray<3, T1> & margProbStack, MultiArray<2, UInt8> & MAPLabels,  MultiArray<1, double> priorStrength, int numOffsets=5, double offsetScale=1.0, int sampling=1, int numGDsteps=50, float lambdaU=4, float lambdaPW=4)
     {
 
         // useful constants
@@ -457,7 +457,7 @@ public:
     }
 
     template <class T1>
-    static void AAM_Inference_2inits(const MultiArray<3, T1> & probStack, const MultiArray<3, T1> & rawImage, MultiArray<3, T1> & margProbStack, MultiArray<2, int> & MAPLabels, MultiArray<1, double> priorStrength, int numOffsets=5, double offsetScale=1.0, int sampling=1, int numGDsteps=50, float lambdaU=4, float lambdaPW=4)
+    static void AAM_Inference_2inits(const MultiArray<3, T1> & probStack, const MultiArray<3, T1> & rawImage, MultiArray<3, T1> & margProbStack, MultiArray<2, UInt8> & MAPLabels, MultiArray<1, double> priorStrength, int numOffsets=5, double offsetScale=1.0, int sampling=1, int numGDsteps=50, float lambdaU=4, float lambdaPW=4)
     {
 
         // useful constants
@@ -684,7 +684,7 @@ public:
     }
 
     template <class T1>
-    static void MAPFromFits(const MultiArray<2,T1> & unaryFactors, const MultiArray<3,T1> & pairwiseFactors, const MultiArray<3, int> & fits, MultiArray<2,int> & MAPLabels)
+    static void MAPFromFits(const MultiArray<2,T1> & unaryFactors, const MultiArray<3,T1> & pairwiseFactors, const MultiArray<3, int> & fits, MultiArray<2,UInt8> & MAPLabels)
     {
 
         // useful constants

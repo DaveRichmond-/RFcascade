@@ -345,7 +345,7 @@ int run_main(int argc, const char **argv)
                     } else if (smooth_flag == 6 ) {
                         // mimic AAM w/o inference
                         MultiArray<2, int> MAPLabels;     // for now, just throw away the MAPLabels
-                        smoothingtools::AAM_perSomite_Inference_2inits<ImageType>(rfPath.c_str(), probArray[k], rawImageArray[k], smoothProbArray[k], MAPLabels, priorStrength, numOffsets, offsetScale, sampling, numGDsteps, 0.5, 10);
+                        smoothingtools::AAM_perSomite_Inference_2inits<ImageType>(rfPath.c_str(), probArray[k], rawImageArray[k], smoothProbArray[k], MAPLabels, priorStrength, numOffsets, offsetScale, sampling, numGDsteps, 4, 1);
                     }
 
                 }

@@ -204,6 +204,7 @@ int run_main(int argc, const char **argv)
             start = std::clock();
             // smooth the new probability maps
             ArrayVector<MultiArray<3, ImageType> > smoothProbArray(num_images);
+            MultiArray<2, UInt8> MAPLabels(0,0);
             for (int k=0; k<num_images; ++k){
                 smoothProbArray[k].reshape(Shape3(xy_dim[0], xy_dim[1], num_classes));
 //              smoothingtools::rigidMBS<ImageType>(probArray[k], smoothProbArray[k], numFits, numCentroidsUsed, sampling);
@@ -212,20 +213,16 @@ int run_main(int argc, const char **argv)
                 else if ( smooth_flag  == 1 )
                     smoothingtools::AAM_MBS<ImageType>(probArray[k], rawImageArray[k], smoothProbArray[k], priorStrength, numOffsets, offsetScale, sampling, numGDsteps, lambdaU);
                 else if ( smooth_flag == 2 ){
-                    MultiArray<2, int> MAPLabels;     // for now, just throw away the MAPLabels
                     smoothingtools::AAM_Inference<ImageType>(probArray[k], rawImageArray[k], smoothProbArray[k], MAPLabels, priorStrength, numOffsets, offsetScale, sampling, numGDsteps, lambdaU, lambdaPW);
                 } else if ( smooth_flag == 3 ){
-                    MultiArray<2, int> MAPLabels;     // for now, just throw away the MAPLabels
                     smoothingtools::AAM_Inference_2inits<ImageType>(probArray[k], rawImageArray[k], smoothProbArray[k], MAPLabels, priorStrength, numOffsets, offsetScale, sampling, numGDsteps, lambdaU, lambdaPW);
                 } else if ( smooth_flag == 4 ){
-                    MultiArray<2, int> MAPLabels;     // for now, just throw away the MAPLabels
                     smoothingtools::AAM_perSomite_Inference_2inits<ImageType>(rfPath.c_str(), probArray[k], rawImageArray[k], smoothProbArray[k], MAPLabels, priorStrength, numOffsets, offsetScale, sampling, numGDsteps, lambdaU, lambdaPW);
                 } else if (smooth_flag == 5 ) {
                     smoothingtools::GeodesicSmoothing<ImageType>(probArray[k], rawImageArray[k], smoothProbArray[k], num_images, xy_dim, sampling, 20);
                 } else if (smooth_flag == 6 ) {
                     // mimic AAM w/o inference
-                    MultiArray<2, int> MAPLabels;     // for now, just throw away the MAPLabels
-                    smoothingtools::AAM_perSomite_Inference_2inits<ImageType>(rfPath.c_str(), probArray[k], rawImageArray[k], smoothProbArray[k], MAPLabels, priorStrength, numOffsets, offsetScale, sampling, numGDsteps, 0.5, 10);
+                    smoothingtools::AAM_perSomite_Inference_2inits<ImageType>(rfPath.c_str(), probArray[k], rawImageArray[k], smoothProbArray[k], MAPLabels, priorStrength, numOffsets, offsetScale, sampling, numGDsteps, 4, 1);
                 }
             }
             // toc
@@ -307,6 +304,11 @@ int run_main(int argc, const char **argv)
                 std::string fnameSmooth(outputPath + "/" + "image_smooth" + nameDummy + image_idx + "_level#" + level_idx);
                 VolumeExportInfo Export_info_smooth(fnameSmooth.c_str(),".tif");
                 exportVolume(smoothLabelArray[j], Export_info_smooth);
+
+                if ( MAPLabels.size(0)>0 ){
+                    std::string fnameMAP(outputPath + "/" + "image_MAP" + nameDummy + image_idx + "_level#" + level_idx + ".tif");
+                    exportImage(MAPLabels, fnameMAP);
+                }
 
                 if ( useWeightedRFsmoothing == 1 )
                 {
