@@ -306,67 +306,93 @@ public:
         */
     }
 
-//    static void diceOnTwoFolds(std::string gtPath1, std::string gtPath2, std::string resultsPath, int num_levels = 1, int num_images = 0, int num_classes = 22)
-//    {
+    template <class T2>
+    static void diceOnTwoFolds(std::string gtPath1, std::string gtPath2, std::string resultsPath1, std::string resultsPath2, std::string dicePath, int num_levels, int num_images1, int num_images2, int num_classes = 22)
+    {
 
-//        ArrayVector<std::string> allGtNames = imagetools::getAllFilenames(gtPath1);
-//        ArrayVector<std::string> allResultsNames = imagetools::getAllFilenames(resultsPath);
+        ArrayVector<std::string> allGtNames1 = imagetools::getAllFilenames(gtPath1);
+        ArrayVector<std::string> allGtNames2 = imagetools::getAllFilenames(gtPath2);
+        ArrayVector<std::string> allResultsNames1 = imagetools::getAllFilenames(resultsPath1);
+        ArrayVector<std::string> allResultsNames2 = imagetools::getAllFilenames(resultsPath2);
 
-//        if (num_images)
-//        {
-//            allGtNames.resize(num_images);
-//            allResultsNames.resize(num_images*num_levels);
-//        } else
-//            num_images = allGtNames.size();
+        allGtNames1.resize(num_images1);
+        allGtNames2.resize(num_images2);
+        allResultsNames1.resize(num_images1*num_levels);
+        allResultsNames2.resize(num_images2*num_levels);
 
-//        MultiArray<3, float> diceArray(Shape3(num_classes, num_levels, num_images));
+        MultiArray<3, float> diceArray(Shape3(num_classes, num_levels, num_images1 + num_images2));
 
-//        // load gt image, and corresponding set of results images from cascade.  run dice() on each pair.
-//        for (int imgIdx = 0; imgIdx < num_images; imgIdx++)
-//        {
-//            MultiArray<2, T2> gtLabelImg;
-//            fs::path name(allGtNames[imgIdx]);
-//            fs::path path(gtPath1);
-//            fs::path full_path = path / name;                           // OS specific?
-//            importImage(full_path.string(), gtLabelImg);
+        // FOLD1 - load gt image, and corresponding set of results images from cascade.  run dice() on each pair.
+        for (int imgIdx = 0; imgIdx < num_images1; imgIdx++)
+        {
+            MultiArray<2, T2> gtLabelImg;
+            fs::path name(allGtNames1[imgIdx]);
+            fs::path path(gtPath1);
+            fs::path full_path = path / name;                           // OS specific?
+            importImage(full_path.string(), gtLabelImg);
 
-//            for (int levelIdx = 0; levelIdx < num_levels; levelIdx++)
-//            {
-//                int cascIdx = imgIdx*num_levels + levelIdx;
+            for (int levelIdx = 0; levelIdx < num_levels; levelIdx++)
+            {
+                int cascIdx = imgIdx*num_levels + levelIdx;
 
-//                MultiArray<2, T2> resultsLabelImg;
-//                fs::path name(allResultsNames[cascIdx]);
-//                fs::path path(resultsPath);
-//                fs::path full_path = path / name;                           // OS specific?
-//                importImage(full_path.string(), resultsLabelImg);
+                MultiArray<2, T2> resultsLabelImg;
+                fs::path name(allResultsNames1[cascIdx]);
+                fs::path path(resultsPath1);
+                fs::path full_path = path / name;                           // OS specific?
+                importImage(full_path.string(), resultsLabelImg);
 
-//                ArrayVector<float> temp_dice = dice<T2>(gtLabelImg, resultsLabelImg, num_classes);
-//                for (int classIdx = 0; classIdx < temp_dice.size(); ++classIdx)
-//                    diceArray(classIdx, levelIdx, imgIdx) = temp_dice[classIdx];
-//            }
+                ArrayVector<float> temp_dice = dice<T2>(gtLabelImg, resultsLabelImg, num_classes);
+                for (int classIdx = 0; classIdx < temp_dice.size(); ++classIdx)
+                    diceArray(classIdx, levelIdx, imgIdx) = temp_dice[classIdx];
+            }
+        }
 
-//        }
-//        // write diceArray to csv file
-//        std::ofstream myfile;
-//        std::string fname;
-//        fname = resultsPath + "/diceScores.txt";
-//        myfile.open(fname);
-//        // first write column headers
-//        myfile << "image" << "," << "level" << "," << "class" << "," << "diceScore" << std::endl;
-//        // now write data
-//        for (int k=0; k<diceArray.size(2); k++)
-//        {
-//            for (int j=0; j<diceArray.size(1); j++)
-//            {
-//                for (int i=0; i<diceArray.size(0); i++)
-//                {
-//                    myfile << k << "," << j << "," << i << "," << diceArray(i,j,k) << std::endl;
-//                }
-//            }
-//        }
-//        myfile.close();
+        // FOLD2 - load gt image, and corresponding set of results images from cascade.  run dice() on each pair.
+        for (int imgIdx = 0; imgIdx < num_images2; imgIdx++)
+        {
+            MultiArray<2, T2> gtLabelImg;
+            fs::path name(allGtNames2[imgIdx]);
+            fs::path path(gtPath2);
+            fs::path full_path = path / name;                           // OS specific?
+            importImage(full_path.string(), gtLabelImg);
 
-//    }
+            for (int levelIdx = 0; levelIdx < num_levels; levelIdx++)
+            {
+                int cascIdx = imgIdx*num_levels + levelIdx;
+
+                MultiArray<2, T2> resultsLabelImg;
+                fs::path name(allResultsNames2[cascIdx]);
+                fs::path path(resultsPath2);
+                fs::path full_path = path / name;                           // OS specific?
+                importImage(full_path.string(), resultsLabelImg);
+
+                ArrayVector<float> temp_dice = dice<T2>(gtLabelImg, resultsLabelImg, num_classes);
+                for (int classIdx = 0; classIdx < temp_dice.size(); ++classIdx)
+                    diceArray(classIdx, levelIdx, num_images1 + imgIdx) = temp_dice[classIdx];
+            }
+        }
+
+        // write diceArray to csv file
+        std::ofstream myfile;
+        std::string fname;
+        fname = dicePath + "/diceScores.txt";
+        myfile.open(fname);
+        // first write column headers
+        myfile << "image" << "," << "level" << "," << "class" << "," << "diceScore" << std::endl;
+        // now write data
+        for (int k=0; k<diceArray.size(2); k++)
+        {
+            for (int j=0; j<diceArray.size(1); j++)
+            {
+                for (int i=0; i<diceArray.size(0); i++)
+                {
+                    myfile << k << "," << j << "," << i << "," << diceArray(i,j,k) << std::endl;
+                }
+            }
+        }
+        myfile.close();
+
+    }
 
 //
 
