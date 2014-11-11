@@ -395,10 +395,9 @@ int run_main(int argc, const char **argv)
                 {
                     for (int img_indx=0; img_indx<num_images_per_level; ++img_indx)
                     {
+                        std::string imageNameDummy="_image#";
                         if (img_indx<10) {
-                            std::string imageNameDummy="_image#0"
-                        } else {
-                            std::string imageNameDummy="_image#"
+                            std::string imageNameDummy="_image#0";
                         }
                         std::string fname(outputPath + "/" + "level#" + std::to_string(j) + imageNameDummy + std::to_string(img_indx) + "_probs");
                         VolumeExportInfo Export_info(fname.c_str(), ".tif");

@@ -295,10 +295,9 @@ int run_main(int argc, const char **argv)
             std::string level_idx = std::to_string(i);
             for (int j=0; j<num_images; ++j)
             {
+                std::string nameDummy="#";
                 if (j<10) {
-                    std::string nameDummy="#0"
-                } else {
-                    std::string nameDummy="#"
+                    std::string nameDummy="#0";
                 }
                 std::string image_idx = std::to_string(j);
                 std::string fname(outputPath + "/" + "image" + nameDummy + image_idx + "_level#" + level_idx);
@@ -322,10 +321,9 @@ int run_main(int argc, const char **argv)
             {
                 for (int img_indx=0; img_indx<num_images; ++img_indx)
                 {
+                    std::string imageNameDummy="_image#";
                     if (img_indx<10) {
-                        std::string imageNameDummy="_image#0"
-                    } else {
-                        std::string imageNameDummy="_image#"
+                        std::string imageNameDummy="_image#0";
                     }
 
                     std::string fname(outputPath + "/" + "level#" + std::to_string(i) + imageNameDummy + std::to_string(img_indx) + "_probs");
