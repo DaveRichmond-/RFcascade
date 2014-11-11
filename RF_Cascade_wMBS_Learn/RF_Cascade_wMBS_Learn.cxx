@@ -219,7 +219,7 @@ int run_main(int argc, const char **argv)
     try
     {
 
-        if ( smooth_flag == 4 )
+        if ( smooth_flag == 4 || smooth_flag == 6 )
         {
             // build AAM model for fitting
             ArrayVector<std::string> allImageNames;
@@ -260,7 +260,7 @@ int run_main(int argc, const char **argv)
                 // re-use above strategy to get grayscale images.  need some dummy variables.
                 imagetools::getArrayOfRawImages(rawPath, rfRawImageArray, raw_dim, imgNumVectorAtLevel, rfFeaturesArraySize);
 
-                if ( smooth_flag == 4 )
+                if ( smooth_flag == 4 || smooth_flag == 6 )
                 {
                     std::vector<int> imgNotUsedAtLevel;
                     // which images aren't used at this level
@@ -342,6 +342,10 @@ int run_main(int argc, const char **argv)
                         smoothingtools::AAM_perSomite_Inference_2inits<ImageType>(rfPath.c_str(), probArray[k], rawImageArray[k], smoothProbArray[k], MAPLabels, priorStrength, numOffsets, offsetScale, sampling, numGDsteps, lambdaU, lambdaPW);
                     } else if (smooth_flag == 5 ) {
                         smoothingtools::GeodesicSmoothing(probArray[k], rawImageArray[k], smoothProbArray[k], num_images_per_level, xy_dim, sampling, 20);
+                    } else if (smooth_flag == 6 ) {
+                        // mimic AAM w/o inference
+                        MultiArray<2, int> MAPLabels;     // for now, just throw away the MAPLabels
+                        smoothingtools::AAM_perSomite_Inference_2inits<ImageType>(rfPath.c_str(), probArray[k], rawImageArray[k], smoothProbArray[k], MAPLabels, priorStrength, numOffsets, offsetScale, sampling, numGDsteps, 0.5, 10);
                     }
 
                 }
@@ -391,20 +395,25 @@ int run_main(int argc, const char **argv)
                 {
                     for (int img_indx=0; img_indx<num_images_per_level; ++img_indx)
                     {
-                        std::string fname(outputPath + "/" + "level#" + std::to_string(j) + "_image#" + std::to_string(img_indx) + "_probs");
+                        if (img_indx<10) {
+                            std::string imageNameDummy="_image#0"
+                        } else {
+                            std::string imageNameDummy="_image#"
+                        }
+                        std::string fname(outputPath + "/" + "level#" + std::to_string(j) + imageNameDummy + std::to_string(img_indx) + "_probs");
                         VolumeExportInfo Export_info(fname.c_str(), ".tif");
                         exportVolume(probArray[img_indx], Export_info);
 
                         if ( smooth_flag )
                         {
-                            std::string fname2(outputPath + "/" + "level#" + std::to_string(j) + "_image#" + std::to_string(img_indx) + "_smoothProbs");
+                            std::string fname2(outputPath + "/" + "level#" + std::to_string(j) + imageNameDummy + std::to_string(img_indx) + "_smoothProbs");
                             VolumeExportInfo Export_info2(fname2.c_str(), ".tif");
                             exportVolume(smoothProbArray[img_indx], Export_info2);
 
                             if ( useWeightedRFsmoothing == 1 )
                             {
                                 // output weighted probs
-                                std::string fname3(outputPath + "/" + "level#" + std::to_string(j) + "_image#" + std::to_string(img_indx) + "_weightedProbs");
+                                std::string fname3(outputPath + "/" + "level#" + std::to_string(j) + imageNameDummy + std::to_string(img_indx) + "_weightedProbs");
                                 VolumeExportInfo Export_info3(fname3.c_str(), ".tif");
                                 exportVolume(weightedProbArray[img_indx], Export_info3);
                             }

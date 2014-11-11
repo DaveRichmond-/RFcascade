@@ -147,8 +147,13 @@ int main(int argc, char ** argv)
         std::string level_idx = static_cast<std::ostringstream*>( &(std::ostringstream() << i) )->str();
         for (int j=0; j<num_images; ++j)
         {
+            if (j<10) {
+                std::string imageNameDummy="image#0"
+            } else {
+                std::string imageNameDummy="image#"
+            }
             std::string image_idx = static_cast<std::ostringstream*>( &(std::ostringstream() << j) )->str();
-            std::string fname("image#" + image_idx + "_level#" + level_idx);
+            std::string fname(imageNameDummy + image_idx + "_level#" + level_idx);
             VolumeExportInfo Export_info(fname.c_str(),".tif");
             exportVolume(labelArray[j], Export_info);
         }
@@ -160,7 +165,7 @@ int main(int argc, char ** argv)
             for (int j=0; j<num_images; ++j)
             {
                 std::string image_idx = static_cast<std::ostringstream*>( &(std::ostringstream() << j) )->str();
-                std::string fname("level#" + level_idx + "_image#" + image_idx + "_smoothProbabilities");
+                std::string fname("level#" + level_idx + "_" + imageNameDummy + image_idx + "_smoothProbabilities");
                 VolumeExportInfo Export_info(fname.c_str(), ".tif");
                 exportVolume(smoothProbArray[j], Export_info);
             }
