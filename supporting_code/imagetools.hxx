@@ -306,6 +306,68 @@ public:
         */
     }
 
+//    static void diceOnTwoFolds(std::string gtPath1, std::string gtPath2, std::string resultsPath, int num_levels = 1, int num_images = 0, int num_classes = 22)
+//    {
+
+//        ArrayVector<std::string> allGtNames = imagetools::getAllFilenames(gtPath1);
+//        ArrayVector<std::string> allResultsNames = imagetools::getAllFilenames(resultsPath);
+
+//        if (num_images)
+//        {
+//            allGtNames.resize(num_images);
+//            allResultsNames.resize(num_images*num_levels);
+//        } else
+//            num_images = allGtNames.size();
+
+//        MultiArray<3, float> diceArray(Shape3(num_classes, num_levels, num_images));
+
+//        // load gt image, and corresponding set of results images from cascade.  run dice() on each pair.
+//        for (int imgIdx = 0; imgIdx < num_images; imgIdx++)
+//        {
+//            MultiArray<2, T2> gtLabelImg;
+//            fs::path name(allGtNames[imgIdx]);
+//            fs::path path(gtPath1);
+//            fs::path full_path = path / name;                           // OS specific?
+//            importImage(full_path.string(), gtLabelImg);
+
+//            for (int levelIdx = 0; levelIdx < num_levels; levelIdx++)
+//            {
+//                int cascIdx = imgIdx*num_levels + levelIdx;
+
+//                MultiArray<2, T2> resultsLabelImg;
+//                fs::path name(allResultsNames[cascIdx]);
+//                fs::path path(resultsPath);
+//                fs::path full_path = path / name;                           // OS specific?
+//                importImage(full_path.string(), resultsLabelImg);
+
+//                ArrayVector<float> temp_dice = dice<T2>(gtLabelImg, resultsLabelImg, num_classes);
+//                for (int classIdx = 0; classIdx < temp_dice.size(); ++classIdx)
+//                    diceArray(classIdx, levelIdx, imgIdx) = temp_dice[classIdx];
+//            }
+
+//        }
+//        // write diceArray to csv file
+//        std::ofstream myfile;
+//        std::string fname;
+//        fname = resultsPath + "/diceScores.txt";
+//        myfile.open(fname);
+//        // first write column headers
+//        myfile << "image" << "," << "level" << "," << "class" << "," << "diceScore" << std::endl;
+//        // now write data
+//        for (int k=0; k<diceArray.size(2); k++)
+//        {
+//            for (int j=0; j<diceArray.size(1); j++)
+//            {
+//                for (int i=0; i<diceArray.size(0); i++)
+//                {
+//                    myfile << k << "," << j << "," << i << "," << diceArray(i,j,k) << std::endl;
+//                }
+//            }
+//        }
+//        myfile.close();
+
+//    }
+
 //
 
 	static ArrayVector<std::string> getAllFilenames(std::string basePath)
