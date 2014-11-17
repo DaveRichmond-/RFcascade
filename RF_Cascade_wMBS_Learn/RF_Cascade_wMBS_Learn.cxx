@@ -108,7 +108,7 @@ int run_main(int argc, const char **argv)
             imgNumVector.push_back(i); // 0 1 2 3 4 5 6 7 8 9 ...
         }
     } else {
-        int numRotations=1; //TODO: find out from filenames!
+        int numRotations=3; //TODO: find out from filenames!
         int numOrigImagesPerChunk=(num_images/num_levels)/numRotations;
         for (int l=0; l<num_levels; ++l) {
             for (int i=0; i<numOrigImagesPerChunk; i++){
