@@ -216,7 +216,7 @@ public:
     }
 
     template <class T1>
-    static void GeodesicSmoothing(const MultiArray<3, T1> & probStack, const MultiArray<3, T1> & rawImage, MultiArray<3, T1> & smoothProbStack, int num_images, Shape2 xy_dim, int sampling, float maxDist=10)
+    static void GeodesicSmoothing(const MultiArray<3, T1> & probStack, const MultiArray<3, T1> & rawImage, MultiArray<3, T1> & smoothProbStack, int num_images, Shape2 xy_dim, int sampling, float maxDist=10, float doCriminisi=1)
     {
         std::cout << "running geodesic smoothing..." << std::endl;
 
@@ -280,14 +280,14 @@ public:
             for (int y=excerptRadius; y<xy_dim[1]-excerptRadius; y++) {
 
                 // check if we need it for that pixel --- prob threshold in background prob image
-                bool doPixel = backgroundProb(x,y) < 0.9 ;
+                bool doPixel = backgroundProb(x,y) < 0.95 ;
                 if (!doPixel) continue;
 
                 // geo dist transform in raw image (downsampled!! max distance!!)
                 // get excerpt of gradMagImage:
                 MultiArray<2, T1> gradMagExcerpt = gradMagWeight*gradMagImage.subarray(Shape2(x-excerptRadius,y-excerptRadius), Shape2(x+excerptRadius+1,y+excerptRadius+1));
-                if (x==43 && y==150)
-                   exportImage(gradMagExcerpt, "/Users/kainmull/testGradMagExcerpt.tif");
+//                if (x==43 && y==150)
+//                   exportImage(gradMagExcerpt, "/Users/kainmull/testGradMagExcerpt.tif");
 
                 // build graph:
 
@@ -342,8 +342,8 @@ public:
                     geoDistOfPixel(excX,excY)=d_vec[excX*excerptSize+excY];
                 }
 
-                if (x==43 && y==150)
-                   exportImage(geoDistOfPixel, "/Users/kainmull/testGeoDist.tif");
+ //               if (x==43 && y==150)
+ //                  exportImage(geoDistOfPixel, "/Users/kainmull/testGeoDist.tif");
  //               return;
 
                 float ZnoBkg=0;
@@ -360,8 +360,12 @@ public:
                     T1 maxQ[1];
                     Qimg.minmax(minQ,maxQ);
 
-                    T1 pNew=probStack(x,y,c)*exp(-1.0*sq(minQ[0])/sigma2 );
-                    //T1 pNew=exp(-1.0*sq(minQ[0])/sigma2 );
+                    T1 pNew;
+                    if (doCriminisi) {
+                        pNew=probStack(x,y,c)*exp(-1.0*sq(minQ[0])/sigma2 );
+                    } else {
+                        pNew=exp(-1.0*sq(minQ[0])/sigma2 );
+                    }
                     // prob_new(class,p) = prob(class,p)*e-(Q/sigma)square
 //                    std::cout << "c p pNew " << c << " " << probStack(x,y,c) << " " << pNew << std::endl;
                     smoothProbStack(x,y,c) = pNew;

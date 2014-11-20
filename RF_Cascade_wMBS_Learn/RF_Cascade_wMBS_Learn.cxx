@@ -85,6 +85,12 @@ int run_main(int argc, const char **argv)
     weightedProbsLambda[2] = atoi(argv[38]);
     int useWeightedRFsmoothing = atoi(argv[39]);
 
+    // params for GeoF:
+    bool doCriminisi = 1;
+    if (argc>40) {
+        doCriminisi = atoi(argv[40]);
+    }
+
     float lambdaU = 4;
     float lambdaPW = 4;
 
@@ -108,7 +114,7 @@ int run_main(int argc, const char **argv)
             imgNumVector.push_back(i); // 0 1 2 3 4 5 6 7 8 9 ...
         }
     } else {
-        int numRotations=1; //TODO: find out from filenames!
+        int numRotations=3; //TODO: find out from filenames!
         int numOrigImagesPerChunk=(num_images/num_levels)/numRotations;
         for (int l=0; l<num_levels; ++l) {
             for (int i=0; i<numOrigImagesPerChunk; i++){
@@ -224,7 +230,7 @@ int run_main(int argc, const char **argv)
     try
     {
 
-        if ( smooth_flag == 4 || smooth_flag == 6 )
+        if ( smooth_flag == 4 || smooth_flag == 6 || smooth_flag == 7 )
         {
             // build AAM model for fitting
             ArrayVector<std::string> allImageNames;
@@ -266,7 +272,7 @@ int run_main(int argc, const char **argv)
                 // re-use above strategy to get grayscale images.  need some dummy variables.
                 imagetools::getArrayOfRawImages(rawPath, rfRawImageArray, raw_dim, imgNumVectorAtLevel, rfFeaturesArraySize);
 
-                if ( smooth_flag == 4 || smooth_flag == 6 )
+                if ( smooth_flag == 4 || smooth_flag == 6 || smooth_flag == 7 )
                 {
                     std::vector<int> imgNotUsedAtLevel;
                     // which images aren't used at this level
@@ -330,6 +336,7 @@ int run_main(int argc, const char **argv)
 
                 // smooth the new probability maps
                 ArrayVector<MultiArray<3, ImageType> > smoothProbArray(num_images_per_level);
+                ArrayVector<MultiArray<2, UInt8> > MAPLabelArray(num_images_per_level);
                 for (int k=0; k<num_images_per_level; ++k){
                     smoothProbArray[k].reshape(Shape3(xy_dim[0], xy_dim[1], num_classes));
 //                    smoothingtools::rigidMBS<ImageType>(probArray[k], smoothProbArray[k], numFits, numCentroidsUsed, sampling);
@@ -338,22 +345,31 @@ int run_main(int argc, const char **argv)
                     else if ( smooth_flag  == 1 )
                         smoothingtools::AAM_MBS<ImageType>(probArray[k], rawImageArray[k], smoothProbArray[k], priorStrength, numOffsets, offsetScale, sampling, numGDsteps, lambdaU);
                     else if ( smooth_flag == 2 ){
-                        MultiArray<2, UInt8> MAPLabels;     // for now, just throw away the MAPLabels
-                        smoothingtools::AAM_Inference<ImageType>(probArray[k], rawImageArray[k], smoothProbArray[k], MAPLabels, priorStrength, numOffsets, offsetScale, sampling, numGDsteps, lambdaU, lambdaPW);
+                        smoothingtools::AAM_Inference<ImageType>(probArray[k], rawImageArray[k], smoothProbArray[k], MAPLabelArray[k], priorStrength, numOffsets, offsetScale, sampling, numGDsteps, lambdaU, lambdaPW);
                     } else if ( smooth_flag == 3 ){
-                        MultiArray<2, UInt8> MAPLabels;     // for now, just throw away the MAPLabels
-                        smoothingtools::AAM_Inference_2inits<ImageType>(probArray[k], rawImageArray[k], smoothProbArray[k], MAPLabels, priorStrength, numOffsets, offsetScale, sampling, numGDsteps, lambdaU, lambdaPW);
-                    } else if ( smooth_flag == 4 ){
-                        MultiArray<2, UInt8> MAPLabels;     // for now, just throw away the MAPLabels
-                        smoothingtools::AAM_perSomite_Inference_2inits<ImageType>(rfPath.c_str(), probArray[k], rawImageArray[k], smoothProbArray[k], MAPLabels, priorStrength, numOffsets, offsetScale, sampling, numGDsteps, lambdaU, lambdaPW);
+                        smoothingtools::AAM_Inference_2inits<ImageType>(probArray[k], rawImageArray[k], smoothProbArray[k], MAPLabelArray[k], priorStrength, numOffsets, offsetScale, sampling, numGDsteps, lambdaU, lambdaPW);
+                    } else if ( smooth_flag == 4 || smooth_flag==7 ){ // 4= use marginals for next level of cascade. 7=use MAP.
+                        smoothingtools::AAM_perSomite_Inference_2inits<ImageType>(rfPath.c_str(), probArray[k], rawImageArray[k], smoothProbArray[k], MAPLabelArray[k], priorStrength, numOffsets, offsetScale, sampling, numGDsteps, lambdaU, lambdaPW);
+
+                        if (smooth_flag==7) { //replace smoothProbArray with MAP
+                            MultiArray<3, ImageType> mapStack;
+                            mapStack.reshape(Shape3(xy_dim[0], xy_dim[1], num_classes));
+                            // fill with 0/1 images: MAPLabelArray[k]==label
+                            for (int c=0; c<num_classes; c++){
+                                for (int x=0; x<xy_dim[0]; x++) {
+                                    for (int y=0; y<xy_dim[1]; y++) {
+                                        mapStack(x,y,c)=1.*(MAPLabelArray[k](x,y)==c);
+                                    }
+                                }
+                            }
+                            smoothProbArray[k]=mapStack;
+                        }
                     } else if (smooth_flag == 5 ) {
-                        smoothingtools::GeodesicSmoothing(probArray[k], rawImageArray[k], smoothProbArray[k], num_images_per_level, xy_dim, sampling, 20);
+                        smoothingtools::GeodesicSmoothing(probArray[k], rawImageArray[k], smoothProbArray[k], num_images_per_level, xy_dim, sampling, 20, doCriminisi);
                     } else if (smooth_flag == 6 ) {
                         // mimic AAM w/o inference
-                        MultiArray<2, UInt8> MAPLabels;     // for now, just throw away the MAPLabels
-                        smoothingtools::AAM_perSomite_Inference_2inits<ImageType>(rfPath.c_str(), probArray[k], rawImageArray[k], smoothProbArray[k], MAPLabels, priorStrength, numOffsets, offsetScale, sampling, numGDsteps, 4, 1);
+                        smoothingtools::AAM_perSomite_Inference_2inits<ImageType>(rfPath.c_str(), probArray[k], rawImageArray[k], smoothProbArray[k], MAPLabelArray[k], priorStrength, numOffsets, offsetScale, sampling, numGDsteps, 1, 10);
                     }
-
                 }
 
                 // Gaussian Smoothing (old)
