@@ -276,7 +276,8 @@ public:
 
         // iterate over pixels...
         for (int x=excerptRadius; x<xy_dim[0]-excerptRadius; x++) {
-//            std::cout << "smoothing pixel (x,.)" << x << " " << std::endl;
+            if (x%50 == 0)
+                std::cout << "smoothing between "  << excerptRadius << " and " << (xy_dim[0]-excerptRadius) << " : pixel (x,.)" << x << " " << std::endl;
             for (int y=excerptRadius; y<xy_dim[1]-excerptRadius; y++) {
 
                 // check if we need it for that pixel --- prob threshold in background prob image
@@ -379,6 +380,8 @@ public:
                 }
             }
         }
+        delete[] edge_array;
+        delete[] weight;
     }
 
     template <class T1>

@@ -366,7 +366,7 @@ int run_main(int argc, const char **argv)
                             smoothProbArray[k]=mapStack;
                         }
                     } else if (smooth_flag == 5 ) {
-                        smoothingtools::GeodesicSmoothing(probArray[k], rawImageArray[k], smoothProbArray[k], num_images_per_level, xy_dim, sampling, 20, doCriminisi);
+                        smoothingtools::GeodesicSmoothing(probArray[k], rawImageArray[k], smoothProbArray[k], num_images_per_level, xy_dim, sampling, sampling*20, doCriminisi);
                     } else if (smooth_flag == 6 ) {
                         // mimic AAM w/o inference
                         smoothingtools::AAM_perSomite_Inference_2inits<ImageType>(rfPath.c_str(), probArray[k], rawImageArray[k], smoothProbArray[k], MAPLabelArray[k], priorStrength, numOffsets, offsetScale, sampling, numGDsteps, 1, 10);
