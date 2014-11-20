@@ -1,5 +1,6 @@
 #include <iostream>
-
+#include <string>
+#include <fstream>
 #include <array>
 #include <chrono>
 #include <algorithm>
@@ -459,14 +460,44 @@ int run_main(int argc, const char **argv)
                     .samples_per_tree(sample_fraction);
 
             std::cout << "training scale factor: " << rf_cascade[i].options().train_scale_ << std::endl;
-
             // tic
             start = std::clock();
-            // learn ith forest
-            if (i==0)
-                rf_cascade[i].learn(rfFeaturesArray[featureArrayIdx], rfLabelsArray[featureArrayIdx], rf_default(), rf_default(), stopping);
+            if ( 1 )
+            {
+                // create visitor to measure importance of all variables
+                rf::visitors::VariableImportanceVisitor varimp_v;
+                if (i==0)
+                    rf_cascade[i].learn(rfFeaturesArray[featureArrayIdx], rfLabelsArray[featureArrayIdx], rf::visitors::create_visitor(varimp_v), rf_default(), stopping);
+                else
+                    rf_cascade[i].learn(rfFeatures_wProbs, rfLabelsArray[featureArrayIdx], rf::visitors::create_visitor(varimp_v), rf_default(), stopping);
+
+                std::cout << "learned forest" << std::endl;
+
+                // write variable importance to csv file
+                std::ofstream myfile;
+                std::string fname_varImp(outputPath + "/" + "varImp_level#" + std::to_string(i) + ".txt");
+                myfile.open(fname_varImp);
+                // first write column headers
+//                myfile << "image" << "," << "level" << "," << "class" << "," << "diceScore" << std::endl;
+                // now write data
+                for (int d1=0; d1<varimp_v.variable_importance_.size(1); d1++)
+                {
+                    for (int d0=0; d0<varimp_v.variable_importance_.size(0); d0++)
+                    {
+                        myfile << varimp_v.variable_importance_(d0,d1) << ",";
+                    }
+                    myfile << std::endl;
+                }
+                myfile.close();
+            }
             else
-                rf_cascade[i].learn(rfFeatures_wProbs, rfLabelsArray[featureArrayIdx], rf_default(), rf_default(), stopping);
+            {
+                // learn ith forest
+                if (i==0)
+                    rf_cascade[i].learn(rfFeaturesArray[featureArrayIdx], rfLabelsArray[featureArrayIdx], rf_default(), rf_default(), stopping);
+                else
+                    rf_cascade[i].learn(rfFeatures_wProbs, rfLabelsArray[featureArrayIdx], rf_default(), rf_default(), stopping);
+            }
             // toc
             duration = ((std::clock() - start) / (float) CLOCKS_PER_SEC) / 60.0;
             std::cout << "time to learn level " << i << " [min]: " << duration << std::endl;
