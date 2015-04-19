@@ -464,6 +464,9 @@ int run_main(int argc, const char **argv)
             start = std::clock();
             if ( 1 )
             {
+                // need to set test_scale, since it will run predict
+                rf_cascade[i].set_options().test_scale(sampling);
+
                 // create visitor to measure importance of all variables
                 rf::visitors::VariableImportanceVisitor varimp_v;
                 if (i==0)
