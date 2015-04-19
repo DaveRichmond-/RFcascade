@@ -44,7 +44,10 @@ int main(int argc, char ** argv)
     int num_images = atoi(argv[3]);
     int sampling = atoi(argv[4]);
 
-    imagetools::getArrayOfFeaturesAndLabels(imgPath, labelPath, rfFeaturesArray, rfLabelsArray, xy_dim, 1, num_images, sampling);
+    std::vector<int> imgNumVector;
+    for (int i=0; i<num_images; ++i) imgNumVector.push_back(i); // 0 1 2 3 4 5 6 7 8 9
+
+    imagetools::getArrayOfFeaturesAndLabels(imgPath, labelPath, rfFeaturesArray, rfLabelsArray, xy_dim, imgNumVector, 1, sampling);
 
     int num_samples = rfFeaturesArray[0].size(0);
     num_images = num_samples / (xy_dim[0]*xy_dim[1]);
@@ -147,10 +150,11 @@ int main(int argc, char ** argv)
         std::string level_idx = static_cast<std::ostringstream*>( &(std::ostringstream() << i) )->str();
         for (int j=0; j<num_images; ++j)
         {
+            std::string imageNameDummy;
             if (j<10) {
-                std::string imageNameDummy="image#0"
+                imageNameDummy="image#0";
             } else {
-                std::string imageNameDummy="image#"
+                imageNameDummy="image#";
             }
             std::string image_idx = static_cast<std::ostringstream*>( &(std::ostringstream() << j) )->str();
             std::string fname(imageNameDummy + image_idx + "_level#" + level_idx);
@@ -159,17 +163,19 @@ int main(int argc, char ** argv)
         }
 
         // save smooth probability maps
-        if ( 0 ) //(rf_cascade.size()-1) )
+
+        if ( 1 )
         {
             std::string level_idx = static_cast<std::ostringstream*>( &(std::ostringstream() << i) )->str();
             for (int j=0; j<num_images; ++j)
             {
                 std::string image_idx = static_cast<std::ostringstream*>( &(std::ostringstream() << j) )->str();
-                std::string fname("level#" + level_idx + "_" + imageNameDummy + image_idx + "_smoothProbabilities");
+                std::string fname("level#" + level_idx + "_" + image_idx + "_Probabilities");
                 VolumeExportInfo Export_info(fname.c_str(), ".tif");
-                exportVolume(smoothProbArray[j], Export_info);
+                exportVolume(probArray[j], Export_info);
             }
         }
+
 
     }
 
