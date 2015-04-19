@@ -25,9 +25,6 @@ int main(int argc, char ** argv)
     typedef float ImageType;
     typedef UInt8 LabelType;
 
-    // some user defined parameters
-    double smoothing_scale = 3.0;
-
 	// import images --------------------->
 	
     std::string imgPath(argv[1]);
@@ -127,13 +124,12 @@ int main(int argc, char ** argv)
             // setup rfFeatures_wProbs
             if (j==0)
             {
-                rfFeatures_wProbs.reshape(Shape2(num_samples, num_filt_features + 2*num_classes));
+                rfFeatures_wProbs.reshape(Shape2(num_samples, num_filt_features + num_classes));
                 rfFeatures_wProbs.subarray(Shape2(0,0), Shape2(num_samples,num_filt_features)) = rfFeaturesArray[i];
             }
 
             // define probs to store output of predictProbabilities
             MultiArray<2, float> probs(Shape2(num_samples, num_classes));
-            MultiArray<2, float> smoothProbs(Shape2(num_samples, num_classes));
 
             // set test scale
             rf_cascade[j].set_options().test_scale(sampling);
@@ -148,20 +144,8 @@ int main(int argc, char ** argv)
             ArrayVector<MultiArray<3, ImageType> > probArray(num_images_per_level);
             imagetools::probsToImages<ImageType>(probs, probArray, xy_dim);
 
-            // smooth the new probability maps
-            ArrayVector<MultiArray<3, ImageType> > smoothProbArray(num_images_per_level);
-            for (int k=0; k<num_images_per_level; ++k){
-                smoothProbArray[k].reshape(Shape3(xy_dim[0], xy_dim[1], num_classes));
-                for (int l=0; l<num_classes; ++l){
-                    // smooth individual probability images (slices) by some method.  insert "model-based smoothing" here...
-                    gaussianSmoothing(probArray[k].bind<2>(l), smoothProbArray[k].bind<2>(l), smoothing_scale);
-                }
-            }
-            imagetools::imagesToProbs<ImageType>(smoothProbArray, smoothProbs);
-
             // update train_features with current probability map, and smoothed probability map
             rfFeatures_wProbs.subarray(Shape2(0,num_filt_features), Shape2(num_samples,num_filt_features+num_classes)) = probs;
-            rfFeatures_wProbs.subarray(Shape2(0,num_filt_features+num_classes), Shape2(num_samples,num_filt_features+2*num_classes)) = smoothProbs;
 
         }
 
