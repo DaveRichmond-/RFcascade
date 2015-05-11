@@ -211,7 +211,7 @@ int run_main(int argc, const char **argv)
     // initialize matlab compiler runtime --------------------------------->
 
     // Initialize the MATLAB Compiler Runtime global state
-    if (!mclInitializeApplication(NULL,0))
+    if ( smooth_flag>0 && !mclInitializeApplication(NULL,0))
     {
         std::cerr << "Could not initialize the application properly."
                   << std::endl;
@@ -219,7 +219,7 @@ int run_main(int argc, const char **argv)
     }
 
     // Initialize the modelBasedSmoothing library
-    if( !libmodelBasedSmoothing2Initialize() )
+    if( smooth_flag>0 && !libmodelBasedSmoothing2Initialize() )
     {
         std::cerr << "Could not initialize the library properly."
                   << std::endl;
