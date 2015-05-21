@@ -34,6 +34,8 @@ int main(int argc, char ** argv)
     int num_levels = atoi(argv[4]);
     int sampling = atoi(argv[5]);
 
+    int featDim = atoi(argv[15]);
+
     // specify order to use data in cascade
     bool useAllImagesAtEveryLevel = (atoi(argv[14])>0);
 
@@ -50,7 +52,7 @@ int main(int argc, char ** argv)
         for (int l=0; l<num_levels; ++l) {
             for (int i=0; i<numOrigImagesPerChunk; i++){
                 for (int r=0; r<numRotations; r++ ) {
-                    imgNumVector.push_back((num_levels*i+l)*numRotations+r); // 0 1 2 3 4 5 6 7 8 9 ...
+                    imgNumVector.push_back((num_levels*i+l)*numRotations+r);
                 }
             }
         }
@@ -60,7 +62,6 @@ int main(int argc, char ** argv)
             }
         }
     }
-    // std::random_shuffle ( imgNumVector.begin(), imgNumVector.end() );
     std::cout << "image order: ";
     for(int x=0; x<imgNumVector.size(); x++) {
         std::cout << imgNumVector[x] << " ";
@@ -72,7 +73,7 @@ int main(int argc, char ** argv)
     ArrayVector< MultiArray<2, UInt8> > rfLabelsArray;
     Shape2 xy_dim(0,0);
 
-    imagetools::getArrayOfFeaturesAndLabels(imgPath, labelPath, rfFeaturesArray, rfLabelsArray, xy_dim, imgNumVector, num_levels, sampling);
+    imagetools::getArrayOfFeaturesAndLabels(imgPath, labelPath, rfFeaturesArray, rfLabelsArray, xy_dim, imgNumVector, num_levels, sampling, featDim);
 
     // set up rf --------------------------------->
 

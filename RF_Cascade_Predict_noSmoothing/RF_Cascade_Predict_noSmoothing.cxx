@@ -44,7 +44,9 @@ int main(int argc, char ** argv)
     std::vector<int> imgNumVector;
     for (int i=0; i<num_images; ++i) imgNumVector.push_back(i); // 0 1 2 3 4 5 6 7 8 9
 
-    imagetools::getArrayOfFeaturesAndLabels(imgPath, labelPath, rfFeaturesArray, rfLabelsArray, xy_dim, imgNumVector, 1, sampling);
+    int featDim = atoi(argv[6]);
+
+    imagetools::getArrayOfFeaturesAndLabels(imgPath, labelPath, rfFeaturesArray, rfLabelsArray, xy_dim, imgNumVector, 1, sampling, featDim);
 
     int num_samples = rfFeaturesArray[0].size(0);
     num_images = num_samples / (xy_dim[0]*xy_dim[1]);
