@@ -97,6 +97,10 @@ int main(int argc, char ** argv)
     int min_split_node_size = atoi(argv[14]);
     EarlyStopDepthAndNodeSize stopping(depth, min_split_node_size);
 
+    // even more params
+    double sample_fraction = atof(argv[17]);
+    std::cout << "sample fraction is: " << sample_fraction << std::endl;
+
     // learn cascade --------------------------------->
 
     // set up clock
@@ -161,10 +165,11 @@ int main(int argc, char ** argv)
                 .train_scale(sampling)
                 .image_shape(xy_dim)
                 .tree_count(tree_count)
-                .use_stratification(RF_EQUAL)
+                .use_stratification(RF_PROPORTIONAL)
                 .max_offset_x(max_offset)
                 .max_offset_y(max_offset)
-                .feature_mix(feature_mix);
+                .feature_mix(feature_mix)
+                .samples_per_tree(sample_fraction);
 
         std::cout << "training scale factor: " << rf_cascade[i].options().train_scale_ << std::endl;
 
