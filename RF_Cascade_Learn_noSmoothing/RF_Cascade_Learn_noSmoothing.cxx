@@ -29,15 +29,17 @@ int main(int argc, char ** argv)
 	
     std::string imgPath(argv[1]);
     std::string labelPath(argv[2]);
+    std::string outputPath(argv[3]);
+    std::string rfPath = outputPath;
 
-    int num_images = atoi(argv[3]);
-    int num_levels = atoi(argv[4]);
-    int sampling = atoi(argv[5]);
+    int num_images = atoi(argv[4]);
+    int num_levels = atoi(argv[5]);
+    int sampling = atoi(argv[6]);
 
-    int featDim = atoi(argv[15]);
+    int featDim = atoi(argv[16]);
 
     // specify order to use data in cascade
-    bool useAllImagesAtEveryLevel = (atoi(argv[14])>0);
+    bool useAllImagesAtEveryLevel = (atoi(argv[15])>0);
 
     // build order in which to use images:
     // std::srand ( unsigned ( std::time(0) ) );
@@ -79,20 +81,20 @@ int main(int argc, char ** argv)
 
     ArrayVector< RandomForest<float> > rf_cascade;
 
-    int num_classes = atoi(argv[6]);
-    int tree_count = atoi(argv[7]);
+    int num_classes = atoi(argv[7]);
+    int tree_count = atoi(argv[8]);
 
     ArrayVector<int> feature_mix(3);
-    feature_mix[0] = atoi(argv[8]);
-    feature_mix[1] = atoi(argv[9]);
-    feature_mix[2] = atoi(argv[10]);
+    feature_mix[0] = atoi(argv[9]);
+    feature_mix[1] = atoi(argv[10]);
+    feature_mix[2] = atoi(argv[11]);
 
-    int max_offset = atoi(argv[11]) / sampling;        // account for resampling!
+    int max_offset = atoi(argv[12]) / sampling;        // account for resampling!
     std::cout << "\n" << "scaled max offset = " << max_offset << std::endl;
 
     // set early stopping depth
-    int depth = atoi(argv[12]);
-    int min_split_node_size = atoi(argv[13]);
+    int depth = atoi(argv[13]);
+    int min_split_node_size = atoi(argv[14]);
     EarlyStopDepthAndNodeSize stopping(depth, min_split_node_size);
 
     // learn cascade --------------------------------->
@@ -177,7 +179,10 @@ int main(int argc, char ** argv)
         std::cout << "time to learn level " << i << " [min]: " << duration << std::endl;
 
         // save RF cascade after each level (to be safe)
-        HDF5File hdf5_file("rf_cascade", HDF5File::New);
+        std::string rfName("rf_cascade");
+        rfName = rfPath + "/" + rfName;
+
+        HDF5File hdf5_file(rfName, HDF5File::New);
         rf_export_HDF5(rf_cascade, hdf5_file);
 
     }

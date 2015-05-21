@@ -33,18 +33,20 @@ int main(int argc, char ** argv)
 
     std::string imgPath(argv[1]);
     std::string labelPath(argv[2]);
+    std::string outputPath(argv[3]);
+    std::string rfPath = outputPath;
 
     ArrayVector< MultiArray<2, float> > rfFeaturesArray;
     ArrayVector< MultiArray<2, UInt8> > rfLabelsArray;
     Shape2 xy_dim(0,0);
 
-    int num_images = atoi(argv[3]);
-    int sampling = atoi(argv[4]);
+    int num_images = atoi(argv[4]);
+    int sampling = atoi(argv[5]);
 
     std::vector<int> imgNumVector;
     for (int i=0; i<num_images; ++i) imgNumVector.push_back(i); // 0 1 2 3 4 5 6 7 8 9
 
-    int featDim = atoi(argv[6]);
+    int featDim = atoi(argv[7]);
 
     imagetools::getArrayOfFeaturesAndLabels(imgPath, labelPath, rfFeaturesArray, rfLabelsArray, xy_dim, imgNumVector, 1, sampling, featDim);
 
@@ -57,7 +59,8 @@ int main(int argc, char ** argv)
 
     // Load RF --------------------------------->
 
-    std::string rfName(argv[5]);
+    std::string rfName(argv[6]);
+    rfName = rfPath + "/" + rfName;
 
     ArrayVector<RandomForest<float> > rf_cascade;
     HDF5File hdf5_file(rfName, HDF5File::Open);
@@ -135,6 +138,7 @@ int main(int argc, char ** argv)
             }
             std::string image_idx = static_cast<std::ostringstream*>( &(std::ostringstream() << j) )->str();
             std::string fname(imageNameDummy + image_idx + "_level#" + level_idx);
+            fname = outputPath + "/" + fname;
             VolumeExportInfo Export_info(fname.c_str(),".tif");
             exportVolume(labelArray[j], Export_info);
         }
@@ -148,6 +152,7 @@ int main(int argc, char ** argv)
             {
                 std::string image_idx = static_cast<std::ostringstream*>( &(std::ostringstream() << j) )->str();
                 std::string fname("level#" + level_idx + "_" + image_idx + "_Probabilities");
+                fname = outputPath + "/" + fname;
                 VolumeExportInfo Export_info(fname.c_str(), ".tif");
                 exportVolume(probArray[j], Export_info);
             }
