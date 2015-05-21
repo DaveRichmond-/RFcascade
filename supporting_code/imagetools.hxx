@@ -57,6 +57,27 @@ public:
         }
     }
 
+    template <class T1, class T2>
+    static void imageToFeatures(const MultiArray<2, T1> & image, const MultiArray<2, T2> & labels, MultiArray<2, T1> & rfFeatures, MultiArray<2, T2> & rfLabels, int sampling = 1)
+    {
+        // calc some useful constants
+        int num_samples = static_cast<int>(ceil(static_cast<float>(image.size(0))/sampling)) * static_cast<int>(ceil(static_cast<float>(image.size(1))/sampling));
+        int num_features = 1;
+
+        // initialize arrays
+        rfFeatures.reshape(Shape2(num_samples, num_features));
+        rfLabels.reshape(Shape2(num_samples, 1));
+
+        int count = 0;
+        for (int j = 0; j<image.size(1); j += sampling) {
+            for (int i = 0; i<image.size(0); i += sampling) {
+                rfLabels(count, 0) = labels(i, j);
+                rfFeatures(count, 0) = image(i, j);
+                ++count;
+            }
+        }
+    }
+
 	template <class T1, class T2>
     static void imagesToFeatures(const ArrayVector< MultiArray<3, T1> > & imageArray, const ArrayVector< MultiArray<2, T2> > & labelArray, MultiArray<2, T1> & rfFeatures, MultiArray<2, T2> & rfLabels, int sampling = 1)
 	{
@@ -66,15 +87,24 @@ public:
 
         int num_samples_per_image = static_cast<int>(ceil(static_cast<float>(imageArray[0].size(0))/sampling)) * static_cast<int>(ceil(static_cast<float>(imageArray[0].size(1))/sampling));
         int num_samples = num_images * num_samples_per_image;
+
+        // below: works for images of unequal size.  remove 2 lines above.
+        /*
+        int num_samples = 0;
+        std::vector<int> num_samples_cumsum;
+        for (int imgIdx = 0; imgIdx < num_images; imgIdx++)
+        {
+            num_samples += static_cast<int>(ceil(static_cast<float>(imageArray[imgIdx].size(0))/sampling)) * static_cast<int>(ceil(static_cast<float>(imageArray[imgIdx].size(1))/sampling));
+            num_samples_cumsum.push_back(num_samples);
+        }
+        */
+
         int num_features = imageArray[0].size(2);
 
         rfFeatures.reshape(Shape2(num_samples, num_features));
         rfLabels.reshape(Shape2(num_samples, 1));
 
         for (int imgIdx = 0; imgIdx < num_images; imgIdx++) {
-//            MultiArray<2, T1> rfFeaturesPerImage = rfFeatures.subarray(Shape2(imgIdx*num_samples_per_image, 0), Shape2((imgIdx + 1)*num_samples_per_image, num_features));
-//            MultiArray<2, T2> rfLabelsPerImage = rfLabels.subarray(Shape2(imgIdx*num_samples_per_image, 0), Shape2((imgIdx + 1)*num_samples_per_image, 1));
-//            imageToFeatures<T1, T2>(imageArray[imgIdx], labelArray[imgIdx], rfFeaturesPerImage, rfLabelsPerImage, downSample, downSampleFraction);
 
             MultiArray<2, T1> rfFeaturesPerImage;
             MultiArray<2, T2> rfLabelsPerImage;
@@ -82,9 +112,63 @@ public:
 
             rfFeatures.subarray(Shape2(imgIdx*num_samples_per_image, 0), Shape2((imgIdx + 1)*num_samples_per_image, num_features)) = rfFeaturesPerImage;
             rfLabels.subarray(Shape2(imgIdx*num_samples_per_image, 0), Shape2((imgIdx + 1)*num_samples_per_image, 1)) = rfLabelsPerImage;
+
+            // below: works for images of unequal size.  remove 2 lines above.
+            /*
+            int indxL = imgIdx == 0 ? 0 : num_samples_cumsum[imgIdx-1];
+            int indxR = num_samples_cumsum[imgIdx];
+
+            rfFeatures.subarray(Shape2(indxL, 0), Shape2(indxR, num_features)) = rfFeaturesPerImage;
+            rfLabels.subarray(Shape2(indxL, 0), Shape2(indxR, 1)) = rfLabelsPerImage;
+            */
         }
 	}
 
+    template <class T1, class T2>
+    static void imagesToFeatures(const ArrayVector< MultiArray<2, T1> > & imageArray, const ArrayVector< MultiArray<2, T2> > & labelArray, MultiArray<2, T1> & rfFeatures, MultiArray<2, T2> & rfLabels, int sampling = 1)
+    {
+        // calc some useful constants
+        int num_images = imageArray.size();
+        if (!num_images) return;
+
+        int num_samples_per_image = static_cast<int>(ceil(static_cast<float>(imageArray[0].size(0))/sampling)) * static_cast<int>(ceil(static_cast<float>(imageArray[0].size(1))/sampling));
+        int num_samples = num_images * num_samples_per_image;
+
+        // below: works for images of unequal size.  remove 2 lines above.
+        /*
+        int num_samples = 0;
+        std::vector<int> num_samples_cumsum;
+        for (int imgIdx = 0; imgIdx < num_images; imgIdx++)
+        {
+            num_samples += static_cast<int>(ceil(static_cast<float>(imageArray[imgIdx].size(0))/sampling)) * static_cast<int>(ceil(static_cast<float>(imageArray[imgIdx].size(1))/sampling));
+            num_samples_cumsum.push_back(num_samples);
+        }
+        */
+
+        int num_features = 1;
+
+        rfFeatures.reshape(Shape2(num_samples, num_features));
+        rfLabels.reshape(Shape2(num_samples, 1));
+
+        for (int imgIdx = 0; imgIdx < num_images; imgIdx++) {
+
+            MultiArray<2, T1> rfFeaturesPerImage;
+            MultiArray<2, T2> rfLabelsPerImage;
+            imageToFeatures<T1, T2>(imageArray[imgIdx], labelArray[imgIdx], rfFeaturesPerImage, rfLabelsPerImage, sampling);
+
+            rfFeatures.subarray(Shape2(imgIdx*num_samples_per_image, 0), Shape2((imgIdx + 1)*num_samples_per_image, num_features)) = rfFeaturesPerImage;
+            rfLabels.subarray(Shape2(imgIdx*num_samples_per_image, 0), Shape2((imgIdx + 1)*num_samples_per_image, 1)) = rfLabelsPerImage;
+
+            // below: works for images of unequal size.  remove 2 lines above.
+            /*
+            int indxL = imgIdx == 0 ? 0 : num_samples_cumsum[imgIdx-1];
+            int indxR = num_samples_cumsum[imgIdx];
+
+            rfFeatures.subarray(Shape2(indxL, 0), Shape2(indxR, num_features)) = rfFeaturesPerImage;
+            rfLabels.subarray(Shape2(indxL, 0), Shape2(indxR, 1)) = rfLabelsPerImage;
+            */
+        }
+    }
 
     template <class T1>
     static void probsToImage(const MultiArray<2, T1> & probs, MultiArray<3, T1> & image, const Shape2 image_shape)
@@ -433,7 +517,7 @@ public:
 					else if (fs::is_regular_file(dir_itr->status()))
 					{
                         boost::filesystem::path ext = dir_itr->path().extension();
-                        if (ext.string() == ".tif")
+                        if (ext.string() == ".tif" || ext.string() == ".jpg" || ext.string() == ".png")
                         {
                             std::cout << dir_itr->path().filename() << "\n";
                             allFilenames.push_back(dir_itr->path().filename().string());
@@ -475,8 +559,9 @@ public:
                                             Shape2 & xy_dim,
                                             const std::vector<int> & randVector,
                                             int num_levels = 1,
-                                            int sampling = 1)
-	{
+                                            int sampling = 1,
+                                            int featDim = 3)
+    {
         // get all names:
         ArrayVector<std::string> allImageNamesOrdered = imagetools::getAllFilenames(imgPath);
         ArrayVector<std::string> allLabelNamesOrdered = imagetools::getAllFilenames(labelPath);
@@ -499,42 +584,155 @@ public:
         rfFeaturesArray.resize(num_levels);
         rfLabelsArray.resize(num_levels);
 
-		// load a chunk of them and put into feature array: 
-		for (int chunkIdx = 0; chunkIdx < num_levels; chunkIdx++)
-		{
-			int fromIdx = chunkIdx*chunkSize;
-			int toIdx = fromIdx+chunkSize; // toIdx is not included!
-			ArrayVector< MultiArray<3, float> > imageArray(toIdx - fromIdx);
-			for (int idx = fromIdx; idx < toIdx; idx++)
-			{
-				if (idx >= allImageNames.size()) break;
-				MultiArray<3, float> volume;
-//				  std::string name = allImageNames[idx];
-//				  std::string path = imgPath + name;
-//                importVolume(imageArray[idx - fromIdx], name.c_str());
-                fs::path name(allImageNames[idx]);
-                fs::path path(imgPath);
-                fs::path full_path = path / name;                           // OS specific?
+        // load a chunk of them and put into feature array:
+        if (featDim == 3)
+        {
+            for (int chunkIdx = 0; chunkIdx < num_levels; chunkIdx++)
+            {
+                int fromIdx = chunkIdx*chunkSize;
+                int toIdx = fromIdx+chunkSize; // toIdx is not included!
+                ArrayVector< MultiArray<3, float> > imageArray(toIdx - fromIdx);
+                for (int idx = fromIdx; idx < toIdx; idx++)
+                {
+                    if (idx >= allImageNames.size()) break;
+                    MultiArray<3, float> volume;
+                    fs::path name(allImageNames[idx]);
+                    fs::path path(imgPath);
+                    fs::path full_path = path / name;                           // OS specific?
+                    importVolume(volume, full_path.string());
+                    imageArray[idx - fromIdx] = volume;
+                }
+                ArrayVector< MultiArray<2, UInt8> > labelArray(toIdx - fromIdx);
+                for (int idx = fromIdx; idx < toIdx; idx++)
+                {
+                    if (idx >= allLabelNames.size()) break;
+                    MultiArray<2, float> labelImg;
+                    fs::path name(allLabelNames[idx]);
+                    fs::path path(labelPath);
+                    fs::path full_path = path / name;                           // OS specific?
+                    importImage(full_path.string(), labelImg);
+                    labelArray[idx - fromIdx] = labelImg;
+                }
+                MultiArray<2, float> rfFeatures;
+                MultiArray<2, UInt8> rfLabels;
+                imagetools::imagesToFeatures<float, UInt8>(imageArray, labelArray, rfFeatures, rfLabels, sampling);
+
+                rfFeaturesArray[chunkIdx] = rfFeatures;
+                rfLabelsArray[chunkIdx] = rfLabels;
+
+                // set xy_dim, accounting for resampling
+                if (chunkIdx == 0)
+                {
+                    xy_dim[0] = static_cast<int>(ceil(static_cast<float>(imageArray[0].size(0))/sampling));
+                    xy_dim[1] = static_cast<int>(ceil(static_cast<float>(imageArray[0].size(1))/sampling));
+                }
+
+            }
+        }
+        else if (featDim == 2)
+        {
+            for (int chunkIdx = 0; chunkIdx < num_levels; chunkIdx++)
+            {
+                int fromIdx = chunkIdx*chunkSize;
+                int toIdx = fromIdx+chunkSize; // toIdx is not included!
+                ArrayVector< MultiArray<2, float> > imageArray(toIdx - fromIdx);
+                for (int idx = fromIdx; idx < toIdx; idx++)
+                {
+                    if (idx >= allImageNames.size()) break;
+                    MultiArray<2, float> volume;
+                    fs::path name(allImageNames[idx]);
+                    fs::path path(imgPath);
+                    fs::path full_path = path / name;                           // OS specific?
+                    importImage(full_path.string(), volume);
+                    imageArray[idx - fromIdx] = volume;
+                }
+                ArrayVector< MultiArray<2, UInt8> > labelArray(toIdx - fromIdx);
+                for (int idx = fromIdx; idx < toIdx; idx++)
+                {
+                    if (idx >= allLabelNames.size()) break;
+                    MultiArray<2, float> labelImg;
+                    fs::path name(allLabelNames[idx]);
+                    fs::path path(labelPath);
+                    fs::path full_path = path / name;                           // OS specific?
+                    importImage(full_path.string(), labelImg);
+                    labelArray[idx - fromIdx] = labelImg;
+                }
+                MultiArray<2, float> rfFeatures;
+                MultiArray<2, UInt8> rfLabels;
+                imagetools::imagesToFeatures<float, UInt8>(imageArray, labelArray, rfFeatures, rfLabels, sampling);
+
+                rfFeaturesArray[chunkIdx] = rfFeatures;
+                rfLabelsArray[chunkIdx] = rfLabels;
+
+                // set xy_dim, accounting for resampling
+                if (chunkIdx == 0)
+                {
+                    xy_dim[0] = static_cast<int>(ceil(static_cast<float>(imageArray[0].size(0))/sampling));
+                    xy_dim[1] = static_cast<int>(ceil(static_cast<float>(imageArray[0].size(1))/sampling));
+                }
+
+            }
+        }
+    }
+
+
+    /*
+    static void getArrayOfFeaturesAndLabels(std::string featList,
+                                            std::string labelList,
+                                            ArrayVector< MultiArray<2, float> > & rfFeaturesArray,
+                                            ArrayVector< MultiArray<2, UInt8> > & rfLabelsArray,
+                                            Shape2 & xy_dim,
+                                            const std::vector<int> & randVector,
+                                            int num_levels = 1,
+                                            int sampling = 1)
+    {
+        // get all names:
+        ArrayVector<std::string> allImageNamesOrdered = imagetools::getAllFilenames(featList);
+        ArrayVector<std::string> allLabelNamesOrdered = imagetools::getAllFilenames(labelList);
+
+        int num_images=randVector.size();
+
+        // randomize order of names:
+        ArrayVector<std::string> allImageNames(num_images);
+        ArrayVector<std::string> allLabelNames(num_images);
+
+        for (int i=0; i<num_images; i++) {
+            allImageNames[i]=allImageNamesOrdered[randVector[i]];
+            allLabelNames[i]=allLabelNamesOrdered[randVector[i]];
+        }
+
+        int numNames = allImageNames.size();
+        int chunkSize = numNames / num_levels;
+
+        //
+        rfFeaturesArray.resize(num_levels);
+        rfLabelsArray.resize(num_levels);
+
+        // load a chunk of them and put into feature array:
+        for (int chunkIdx = 0; chunkIdx < num_levels; chunkIdx++)
+        {
+            int fromIdx = chunkIdx*chunkSize;
+            int toIdx = fromIdx+chunkSize; // toIdx is not included!
+            ArrayVector< MultiArray<3, float> > imageArray(toIdx - fromIdx);
+            for (int idx = fromIdx; idx < toIdx; idx++)
+            {
+                if (idx >= allImageNames.size()) break;
+                MultiArray<3, float> volume;
+                fs::path full_path(allImageNames[idx]);
                 importVolume(volume, full_path.string());
                 imageArray[idx - fromIdx] = volume;
-			}
-			ArrayVector< MultiArray<2, UInt8> > labelArray(toIdx - fromIdx);
-			for (int idx = fromIdx; idx < toIdx; idx++)
-			{
-				if (idx >= allLabelNames.size()) break;
-				MultiArray<2, float> labelImg;
-//				  std::string name = allLabelNames[idx];
-//				  std::string path = labelPath + name;
-//                importImage(name.c_str(), labelArray[idx - fromIdx]);
-                fs::path name(allLabelNames[idx]);
-                fs::path path(labelPath);
-                fs::path full_path = path / name;                           // OS specific?
+            }
+            ArrayVector< MultiArray<2, UInt8> > labelArray(toIdx - fromIdx);
+            for (int idx = fromIdx; idx < toIdx; idx++)
+            {
+                if (idx >= allLabelNames.size()) break;
+                MultiArray<2, float> labelImg;
+                fs::path full_path(allLabelNames[idx]);
                 importImage(full_path.string(), labelImg);
                 labelArray[idx - fromIdx] = labelImg;
             }
-			MultiArray<2, float> rfFeatures;
-			MultiArray<2, UInt8> rfLabels;
-//            imagetools::imagesToFeatures<float, UInt8>(imageArray, labelArray, rfFeaturesArray[chunkIdx], rfLabelsArray[chunkIdx]);
+            MultiArray<2, float> rfFeatures;
+            MultiArray<2, UInt8> rfLabels;
             imagetools::imagesToFeatures<float, UInt8>(imageArray, labelArray, rfFeatures, rfLabels, sampling);
 
             // set xy_dim, accounting for resampling
@@ -546,8 +744,9 @@ public:
 
             rfFeaturesArray[chunkIdx] = rfFeatures;
             rfLabelsArray[chunkIdx] = rfLabels;
-		}
-	}
+        }
+    }
+    */
 
     static void getArrayOfRawImages(std::string imgPath,
                                     ArrayVector< MultiArray<2, float> > & rfRawImagesArray,
