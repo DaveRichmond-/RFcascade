@@ -115,7 +115,7 @@ int run_main(int argc, const char **argv)
             imgNumVector.push_back(i); // 0 1 2 3 4 5 6 7 8 9 ...
         }
     } else {
-        int numRotations=3; //TODO: find out from filenames!
+        int numRotations=1; //TODO: find out from filenames!
         int numOrigImagesPerChunk=(num_images/num_levels)/numRotations;
         for (int l=0; l<num_levels; ++l) {
             for (int i=0; i<numOrigImagesPerChunk; i++){
@@ -263,6 +263,8 @@ int run_main(int argc, const char **argv)
                 if (i==num_levels-1) b = num_images-1;
 
                 std::vector<int> imgNumVectorAtLevel(&imgNumVector[a],&imgNumVector[b]);
+                if (i==num_levels-1) imgNumVectorAtLevel.push_back(imgNumVector[num_levels-1]);
+
                 std::cout << "level " << i << " image order: ";
                 for(int x=0; x<imgNumVectorAtLevel.size(); x++) {
                     std::cout << imgNumVectorAtLevel[x] << " ";
@@ -454,6 +456,7 @@ int run_main(int argc, const char **argv)
                     .image_shape(xy_dim)
                     .tree_count(tree_count)
                     .use_stratification(RF_PROPORTIONAL)
+//                    .use_stratification(RF_EQUAL)
                     .max_offset_x(max_offset)
                     .max_offset_y(max_offset)
                     .feature_mix(feature_mix)

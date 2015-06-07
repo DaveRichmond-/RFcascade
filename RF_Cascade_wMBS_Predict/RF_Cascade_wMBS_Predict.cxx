@@ -139,7 +139,7 @@ int run_main(int argc, const char **argv)
     }
 
     // Initialize the modelBasedSmoothing library
-    if( !libmodelBasedSmoothing2Initialize() )
+    if( smooth_flag>0 && !libmodelBasedSmoothing2Initialize() )
     {
         std::cerr << "Could not initialize the library properly."
                   << std::endl;
