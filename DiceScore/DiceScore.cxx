@@ -9,8 +9,6 @@ int main(int argc, const char **argv)
     // directories
     std::string gtPath = argv[1];
     std::string resultsBasePath = argv[2];
-
-    //
     std::string resultsPath;
     resultsPath = resultsBasePath + argv[3];
 
@@ -18,9 +16,10 @@ int main(int argc, const char **argv)
     int num_levels = atoi(argv[4]);
     int num_images = atoi(argv[5]);
     int num_classes = atoi(argv[6]);
+    int resampleByTest = atoi(argv[7]);
 
     // calc dice coeffs and save to csv
-    imagetools::diceOnFolder<LabelType>(gtPath, resultsPath, num_levels, num_images, num_classes);
+    imagetools::diceOnFolder<LabelType>(gtPath, resultsPath, num_levels, num_images, num_classes, resampleByTest);
 
     return 0;
 }
