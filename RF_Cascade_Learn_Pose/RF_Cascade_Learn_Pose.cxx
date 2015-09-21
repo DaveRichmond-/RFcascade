@@ -36,10 +36,10 @@ int main(int argc, char ** argv)
     int num_levels = atoi(argv[5]);
     int sampling = atoi(argv[6]);
 
-    int featDim = atoi(argv[16]);
+    int featDim = atoi(argv[18]);
 
     // specify order to use data in cascade
-    bool useAllImagesAtEveryLevel = (atoi(argv[15])>0);
+    bool useAllImagesAtEveryLevel = (atoi(argv[17])>0);
 
     // build order in which to use images:
     // std::srand ( unsigned ( std::time(0) ) );
@@ -84,21 +84,25 @@ int main(int argc, char ** argv)
     int num_classes = atoi(argv[7]);
     int tree_count = atoi(argv[8]);
 
-    ArrayVector<int> feature_mix(3);
+    ArrayVector<int> feature_mix(4);
     feature_mix[0] = atoi(argv[9]);
     feature_mix[1] = atoi(argv[10]);
     feature_mix[2] = atoi(argv[11]);
+    feature_mix[3] = atoi(argv[12]);
 
-    int max_offset = atoi(argv[12]) / sampling;        // account for resampling!
+    int max_offset = atoi(argv[13]) / sampling;        // account for resampling!
+    int std_offset = atoi(argv[14]) / sampling;        // account for resampling!
+
     std::cout << "\n" << "scaled max offset = " << max_offset << std::endl;
+    std::cout << "scaled std offset = " << std_offset << std::endl;
 
     // set early stopping depth
-    int depth = atoi(argv[13]);
-    int min_split_node_size = atoi(argv[14]);
+    int depth = atoi(argv[15]);
+    int min_split_node_size = atoi(argv[16]);
     EarlyStopDepthAndNodeSize stopping(depth, min_split_node_size);
 
     // even more params
-    double sample_fraction = atof(argv[17]);
+    double sample_fraction = atof(argv[19]);
     std::cout << "sample fraction is: " << sample_fraction << std::endl;
 
     // learn cascade --------------------------------->
@@ -148,8 +152,8 @@ int main(int argc, char ** argv)
             else
                 rf_cascade[j].predictProbabilities(rfFeatures_wProbs, probs);
 
-            ArrayVector<MultiArray<3, ImageType> > probArray(num_images_per_level);
-            imagetools::probsToImages<ImageType>(probs, probArray, xy_dim);
+//            ArrayVector<MultiArray<3, ImageType> > probArray(num_images_per_level);
+//            imagetools::probsToImages<ImageType>(probs, probArray, xy_dim);
 
             // update train_features with current probability map, and smoothed probability map
             rfFeatures_wProbs.subarray(Shape2(0,num_filt_features), Shape2(num_samples,num_filt_features+num_classes)) = probs;
@@ -165,9 +169,11 @@ int main(int argc, char ** argv)
                 .train_scale(sampling)
                 .image_shape(xy_dim)
                 .tree_count(tree_count)
-                .use_stratification(RF_PROPORTIONAL)
+                .use_stratification(RF_EQUAL)
+                .features_per_node(RF_SQRT)
                 .max_offset_x(max_offset)
                 .max_offset_y(max_offset)
+                .std_offset_xy(std_offset)
                 .feature_mix(feature_mix)
                 .samples_per_tree(sample_fraction);
 
