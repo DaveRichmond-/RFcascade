@@ -305,7 +305,7 @@ public:
     }
 
     template <class T2>
-    static void diceOnFolder(std::string gtPath, std::string resultsPath, int num_levels = 1, int num_images = 0, int num_classes = 22)
+    static void diceOnFolder(std::string gtPath, std::string resultsPath, int num_levels = 1, int num_images = 0, int num_classes = 22, int resampleByTest = 1)
     {
 
         ArrayVector<std::string> allGtNames = imagetools::getAllFilenames(gtPath);
@@ -328,6 +328,16 @@ public:
             fs::path path(gtPath);
             fs::path full_path = path / name;                           // OS specific?
             importImage(full_path.string(), gtLabelImg);
+
+            // down-sample label image by resampleByTest (to match prediction image)
+            if(resampleByTest > 1){
+                MultiArray<2, T2> tmpLabelImg;
+                tmpLabelImg.reshape(Shape2(ceil(gtLabelImg.size(0)/resampleByTest), ceil(gtLabelImg.size(1)/resampleByTest)));
+                for (int indx_i=0; indx_i<tmpLabelImg.size(0); indx_i++)
+                    for (int indx_j=0; indx_j<tmpLabelImg.size(1); indx_j++)
+                        tmpLabelImg(indx_i,indx_j) = gtLabelImg(indx_i*resampleByTest,indx_j*resampleByTest);
+                gtLabelImg = tmpLabelImg;
+            }
 
             for (int levelIdx = 0; levelIdx < num_levels; levelIdx++)
             {
@@ -388,6 +398,129 @@ public:
         }
         myfile.close();
         */
+    }
+
+    template <class T2>
+    static void pixelAccuracyOnFolder(std::string gtPath, std::string resultsPath, const int BGclass, const int num_levels = 1, int num_images = 0, const int resampleByTest = 1)
+    {
+
+        // sort out image names
+
+        ArrayVector<std::string> allGtNames = imagetools::getAllFilenames(gtPath);
+        ArrayVector<std::string> allResultsNames = imagetools::getAllFilenames(resultsPath);
+
+        if (num_images)
+        {
+            allGtNames.resize(num_images);
+            allResultsNames.resize(num_images*num_levels);
+        } else
+            num_images = allGtNames.size();
+
+        // initalize arrays for storing results
+
+        MultiArray<2, float> accPerImgArray(Shape2(num_levels, num_images));
+        MultiArray<2, float> accAllArray(Shape2(num_levels, 1));
+
+        MultiArray<2, long> numCorrectPxsPerLevel(Shape2(num_levels,1));
+        MultiArray<2, long> numFgPxsPerLevel(Shape2(num_levels,1));
+        numCorrectPxsPerLevel.init(0);
+        numFgPxsPerLevel.init(0);
+
+        // load gt image, and corresponding set of results images from cascade.  run pixelAccuracy() on each pair.
+
+        for (int imgIdx = 0; imgIdx < num_images; imgIdx++)
+        {
+            MultiArray<2, T2> gtLabelImg;
+            fs::path name(allGtNames[imgIdx]);
+            fs::path path(gtPath);
+            fs::path full_path = path / name;                           // OS specific?
+            importImage(full_path.string(), gtLabelImg);
+
+            // down-sample label image by resampleByTest (to match prediction image)
+            if(resampleByTest > 1){
+                MultiArray<2, T2> tmpLabelImg;
+                tmpLabelImg.reshape(Shape2(ceil(gtLabelImg.size(0)/resampleByTest), ceil(gtLabelImg.size(1)/resampleByTest)));
+                for (int indx_i=0; indx_i<tmpLabelImg.size(0); indx_i++)
+                    for (int indx_j=0; indx_j<tmpLabelImg.size(1); indx_j++)
+                        tmpLabelImg(indx_i,indx_j) = gtLabelImg(indx_i*resampleByTest,indx_j*resampleByTest);
+                gtLabelImg = tmpLabelImg;
+            }
+
+            for (int levelIdx = 0; levelIdx < num_levels; levelIdx++)
+            {
+                int cascIdx = imgIdx*num_levels + levelIdx;
+
+                MultiArray<2, T2> resultsLabelImg;
+                fs::path name(allResultsNames[cascIdx]);
+                fs::path path(resultsPath);
+                fs::path full_path = path / name;                           // OS specific?
+                importImage(full_path.string(), resultsLabelImg);
+
+                // compute # correct pixels, and total # FG pixels on image
+                long numCorrectPxs = 0;
+                long numFgPxs = 0;
+                pixelAccuracy<T2>(gtLabelImg, resultsLabelImg, BGclass, numCorrectPxs, numFgPxs);
+
+                // store relevant things
+                numCorrectPxsPerLevel(levelIdx) += numCorrectPxs;
+                numFgPxsPerLevel(levelIdx) += numFgPxs;
+
+                accPerImgArray(levelIdx, imgIdx) = static_cast<float>(numCorrectPxs)/numFgPxs;
+            }
+        }
+
+        // compute average over all pixels
+        for (int levelIdx = 0; levelIdx < num_levels; levelIdx++)
+            accAllArray(levelIdx) = static_cast<float>(numCorrectPxsPerLevel(levelIdx))/numFgPxsPerLevel(levelIdx);
+
+        {
+            // write diceArray to csv file
+            std::ofstream myfile;
+            std::string fname;
+            fname = resultsPath + "/pixelAccuracyPerImg.txt";
+            myfile.open(fname);
+            // first write column headers
+            myfile << "image" << "," << "level" << "," << "pixelAccuracy" << std::endl;
+            // now write data
+            for (int j=0; j<accPerImgArray.shape(1); j++)
+                for (int i=0; i<accPerImgArray.shape(0); i++)
+                    myfile << j << "," << i << "," << accPerImgArray(i,j) << std::endl;
+            myfile.close();
+        }
+
+        {
+            // write diceArray to csv file
+            std::ofstream myfile;
+            std::string fname;
+            fname = resultsPath + "/pixelAccuracyAllImgs.txt";
+            myfile.open(fname);
+            // first write column headers
+            myfile << "level" << "," << "pixelAccuracy" << std::endl;
+            // now write data
+            for (int i=0; i<accAllArray.shape(0); i++)
+                myfile << i << "," << accAllArray(i) << std::endl;
+            myfile.close();
+        }
+    }
+
+    template <class T2>
+    static void pixelAccuracy(MultiArray<2, T2> gtLabelImg, MultiArray<2, T2> resultsLabelImg, int const BGclass, long & numCorrectPxs, long & numFgPxs)
+    {
+        // initialize
+        numFgPxs = 0;
+        numCorrectPxs = 0;
+
+        // calc
+        for (int i = 0; i < gtLabelImg.shape(0); i++)
+            for (int j = 0; j < gtLabelImg.shape(1); j++)
+            {
+                if (gtLabelImg(i,j) != BGclass)
+                {
+                    numFgPxs += 1;
+                    if (gtLabelImg(i,j) == resultsLabelImg(i,j))
+                        numCorrectPxs += 1;
+                }
+            }
     }
 
     template <class T2>
@@ -517,7 +650,7 @@ public:
 					else if (fs::is_regular_file(dir_itr->status()))
 					{
                         boost::filesystem::path ext = dir_itr->path().extension();
-                        if (ext.string() == ".tif" || ext.string() == ".jpg" || ext.string() == ".png")
+                        if (ext.string() == ".tiff" || ext.string() == ".tif" || ext.string() == ".jpg" || ext.string() == ".png")
                         {
                             std::cout << dir_itr->path().filename() << "\n";
                             allFilenames.push_back(dir_itr->path().filename().string());
