@@ -132,6 +132,10 @@ int main(int argc, char ** argv)
         {
             std::string imageNameDummy;
             if (j<10) {
+                imageNameDummy="image#000";
+            } else if (j<100) {
+                imageNameDummy="image#00";
+            } else if (j<1000) {
                 imageNameDummy="image#0";
             } else {
                 imageNameDummy="image#";
@@ -145,7 +149,7 @@ int main(int argc, char ** argv)
 
         // save probability maps
 
-        if ( 1 )
+        if ( 0 )
         {
             std::string level_idx = static_cast<std::ostringstream*>( &(std::ostringstream() << i) )->str();
             for (int j=0; j<num_images; ++j)
