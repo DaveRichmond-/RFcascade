@@ -36,10 +36,10 @@ int main(int argc, char ** argv)
     int num_levels = atoi(argv[5]);
     int sampling = atoi(argv[6]);
 
-    int featDim = atoi(argv[18]);
+    int featDim = atoi(argv[19]);
 
     // specify order to use data in cascade
-    bool useAllImagesAtEveryLevel = (atoi(argv[17])>0);
+    bool useAllImagesAtEveryLevel = (atoi(argv[18])>0);
 
     // build order in which to use images:
     // std::srand ( unsigned ( std::time(0) ) );
@@ -84,25 +84,26 @@ int main(int argc, char ** argv)
     int num_classes = atoi(argv[7]);
     int tree_count = atoi(argv[8]);
 
-    ArrayVector<int> feature_mix(4);
+    ArrayVector<int> feature_mix(5);
     feature_mix[0] = atoi(argv[9]);
     feature_mix[1] = atoi(argv[10]);
     feature_mix[2] = atoi(argv[11]);
     feature_mix[3] = atoi(argv[12]);
+    feature_mix[4] = atoi(argv[13]);
 
-    int max_offset = atoi(argv[13]) / sampling;        // account for resampling!
-    int std_offset = atoi(argv[14]) / sampling;        // account for resampling!
+    int max_offset = atoi(argv[14]) / sampling;        // account for resampling!
+    int std_offset = atoi(argv[15]) / sampling;        // account for resampling!
 
     std::cout << "\n" << "scaled max offset = " << max_offset << std::endl;
     std::cout << "scaled std offset = " << std_offset << std::endl;
 
     // set early stopping depth
-    int depth = atoi(argv[15]);
-    int min_split_node_size = atoi(argv[16]);
+    int depth = atoi(argv[16]);
+    int min_split_node_size = atoi(argv[17]);
     EarlyStopDepthAndNodeSize stopping(depth, min_split_node_size);
 
     // even more params
-    double sample_fraction = atof(argv[19]);
+    double sample_fraction = atof(argv[20]);
     std::cout << "sample fraction is: " << sample_fraction << std::endl;
 
     // learn cascade --------------------------------->
@@ -152,8 +153,29 @@ int main(int argc, char ** argv)
             else
                 rf_cascade[j].predictProbabilities(rfFeatures_wProbs, probs);
 
-//            ArrayVector<MultiArray<3, ImageType> > probArray(num_images_per_level);
-//            imagetools::probsToImages<ImageType>(probs, probArray, xy_dim);
+            ArrayVector<MultiArray<3, ImageType> > probArray(num_images_per_level);
+            imagetools::probsToImages<ImageType>(probs, probArray, xy_dim);
+
+            double smoothing_scale = atof(argv[21])/static_cast<double>(sampling);
+            if (smoothing_scale)
+            {
+                // smooth the new probability maps
+                ArrayVector<MultiArray<3, ImageType> > smoothProbArray(num_images_per_level);
+                for (int k=0; k<num_images_per_level; ++k){
+                    smoothProbArray[k].reshape(Shape3(xy_dim[0], xy_dim[1], num_classes));
+                    for (int l=0; l<num_classes; ++l){
+                        // smooth individual probability images (slices) by some method.  insert "model-based smoothing" here...
+                        gaussianSmoothing(probArray[k].bind<2>(l), smoothProbArray[k].bind<2>(l), smoothing_scale);
+                    }
+                }
+
+                MultiArray<2, float> smoothProbs(Shape2(num_samples, num_classes));
+                imagetools::imagesToProbs<ImageType>(smoothProbArray, smoothProbs);
+
+                // just over-write probs with smoothProbs for now.  don't keep both as features.
+                probs = smoothProbs;
+                probArray = smoothProbArray;
+            }
 
             // update train_features with current probability map, and smoothed probability map
             rfFeatures_wProbs.subarray(Shape2(0,num_filt_features), Shape2(num_samples,num_filt_features+num_classes)) = probs;

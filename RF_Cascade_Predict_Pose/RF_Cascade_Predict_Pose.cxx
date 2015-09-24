@@ -114,8 +114,32 @@ int main(int argc, char ** argv)
         ArrayVector<MultiArray<3, ImageType> > probArray(num_images);
         imagetools::probsToImages<ImageType>(probs, probArray, xy_dim);
 
+        double smoothing_scale = atof(argv[8])/static_cast<double>(sampling);
+        if (smoothing_scale)
+        {
+            // smooth the new probability maps
+            ArrayVector<MultiArray<3, ImageType> > smoothProbArray(num_images);
+            for (int k=0; k<num_images; ++k){
+                smoothProbArray[k].reshape(Shape3(xy_dim[0], xy_dim[1], num_classes));
+                for (int l=0; l<num_classes; ++l){
+                    // smooth individual probability images (slices) by some method.  insert "model-based smoothing" here...
+                    gaussianSmoothing(probArray[k].bind<2>(l), smoothProbArray[k].bind<2>(l), smoothing_scale);
+                }
+            }
+
+            MultiArray<2, float> smoothProbs(Shape2(num_samples, num_classes));
+            imagetools::imagesToProbs<ImageType>(smoothProbArray, smoothProbs);
+
+            // just over-write probs with smoothProbs for now.  don't keep both as features.
+            probs = smoothProbs;
+            probArray = smoothProbArray;
+        }
+
         // update train_features with current probability map
         rfFeatures_wProbs.subarray(Shape2(0,num_filt_features), Shape2(num_samples,num_filt_features+num_classes)) = probs;
+
+
+        // output --------->
 
         // convert probs to labels
         MultiArray<2, UInt8> labels(Shape2(num_samples, 1));
